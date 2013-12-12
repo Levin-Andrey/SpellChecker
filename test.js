@@ -1,5 +1,5 @@
-var parseString = require('xml2js').parseString;
-var xml = "<s>Hello xml2js!</s><s>sadasd</s>"
-parseString(xml, function (err, result) {
-    console.log(result);
-});
+
+
+
+
+child.stdin.write('\u043c\u0444\u043b\u0430\n', 'utf8');
