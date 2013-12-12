@@ -8,7 +8,7 @@ links.push(url);
 
 var SpellChecker = function(callback) {
     this.onUpdate = callback;
-    this.child = spawn('hunspell', ['-a', '-d', 'ru_RU']);
+    this.child = spawn('hunspell', ['-a', '-d', 'ru_RU,en_US']);
     var me = this;
     this.child.stdout.on('data', function (data) {
         var lines = data.toString().split('\n');
@@ -60,7 +60,7 @@ var c = new Crawler({
         var words = [];
         for (var i in wordsDirty) {
             var word = wordsDirty[i];
-            if (word.length > 1 && words.indexOf(word) == -1) {
+            if (word.length > 1) {
                 words.push(word);
                 spellChecker.checkWord(word);
             }
