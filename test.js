@@ -1,10 +1,16 @@
-var databaseUrl = "spell"; // "username:password@example.com/mydb"
-var collections = ["pages"];
-var db = require("mongojs").connect(databaseUrl, collections);
+var db = require("mongojs").connect("spell", ["pages", "projects"]);
 
-db.pages.find({}, function(err, pages) {
-    if( err || !pages) console.log("No pages found");
-    else pages.forEach( function(page) {
-        console.log(page);
-    });
-});
+var a = new Date();
+a.setDate(a.getDate() - 2);
+
+db.pages.count(
+    {
+        $or: [
+            {downloadedAt: {$exists: false}},
+            {downloadedAt: {$lt: a}}
+        ]
+    },
+    function(err, elems) {
+        console.log(elems);
+    }
+);

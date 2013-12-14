@@ -1,70 +1,101 @@
-var Crawler = require("crawler").Crawler;
-var databaseUrl = "spell";
-var collections = ["pages", "projects"];
-var db = require("mongojs").connect(databaseUrl, collections);
+var jsdom = require('jsdom'),
+    db = require("mongojs").connect("spell", ["pages", "projects"]),
+    fs = require("fs"),
+    jquery = fs.readFileSync("./jquery-2.0.3.min.js", "utf-8");
 
-var host = '', id = 0;
-
-var c = new Crawler({
-    "maxConnections":10,
-    "forceUTF8": true,
-    "cache": true,
-    "skipDubplicates": true,
-    "callback": function(error, result, $) {
-        if (error || !$) {
-            console.log(error);
-            return;
-        }
-        console.error(':::::Parsing ' + this.uri);
-        $('script').remove();
-        $('style').remove();
-        var text = $('body').html()
-            .replace(/(<([^>]+)>)/ig, ' ')
-            .replace(/&.*?;/g, " ")
-            .replace(/[,.:;()\\//]/g, " ")
-            .replace(/[0-9]/g, " ");
-        var wordsDirty = text.split(/\s+/);
-        var words = [];
-        for (var i in wordsDirty) {
-            var word = wordsDirty[i];
-            if (word.length > 1) {
-                words.push(word);
-            }
-        }
-        var me = this;
-        $("a").each(function(index,a) {
-            if (a.href.indexOf(host) == -1) {
+var fetchUrl = function(url, callback) {
+    console.error(':::::Parsing ' + url);
+    jsdom.env({
+        url: url,
+        src: [jquery],
+        done: function (err, window) {
+            if (err) {
+                console.log('Got error while fetching url', err);
                 return;
             }
-            db.pages.findOne({url: a.href}, function(err, page) {
-                if (!page) {
-                    db.pages.insert({
-                        project_id: id,
-                        url: a.href
-                    });
-                    console.log('data inserted');
-                    //c.queue(page.url);
-                } else {
-                    console.log(page);
-                }
-            });
-        });
-    },
-    "onDrain": function() {
-        console.log('drain');
-        //process.exit(1);
+            callback(window.jQuery);
+        }
+    });
+};
+
+var getWords = function($) {
+    if (!$) {
+        console.log("Could not get jquery object");
+        return [];
     }
-});
+    $('script').remove();
+    $('style').remove();
+    var text = $('body').html()
+        .replace(/(<([^>]+)>)/ig, ' ')
+        .replace(/&.*?;/g, " ")
+        .replace(/[,.:;()\\//]/g, " ")
+        .replace(/[0-9]/g, " ");
+    var wordsDirty = text.split(/\s+/);
+    var words = [];
+    for (var i in wordsDirty) {
+        var word = wordsDirty[i];
+        if (word.length > 1) {
+            words.push(word);
+        }
+    }
+    return words;
+};
 
-
-db.projects.findOne({}, function(err, project) {
-    host = project.host;
-    id = project._id;
-    db.pages.find({project_id: id}, function(err, pages) {
-        if( err || !pages) console.log("No pages found");
-        else pages.forEach( function(page) {
-            c.queue(page.url);
+var findAndInsertUrls = function($, page) {
+    var host = page.url.replace(/^\w+:\/\//, "").replace(/\/.*$/, "");
+    $("a").each(function(index,a) {
+        if (a.href.indexOf(host) == -1) {
+            return;
+        }
+        var url = a.href.replace(/#.*$/, "");
+        db.pages.insert({
+            project_id: page.project_id,
+            url: url
         });
     });
-});
+};
 
+
+
+var main = function() {
+    var a = new Date();
+    a.setDate(a.getDate() - 2);
+    db.pages.find(
+        {
+            $or: [
+                {downloaded_at: {$exists: false}},
+                {downloaded_at: {$lt: a}}
+            ]
+        },
+        function(err, pages) {
+            console.log('here');
+            if( err || !pages) {
+                console.log("No pages found");
+                setTimeout(main, 10000);
+            }
+            else pages.forEach( function(page) {
+                fetchUrl(page.url, function($) {
+                    var words = getWords($);
+                    db.pages.update({_id: page._id}, {$set: {words: words, downloaded_at: new Date()}});
+                    findAndInsertUrls($, page);
+                    setTimeout(main, 100);
+                });
+            });
+        }
+    );
+};
+
+setInterval(function() {
+    db.projects.find({started_at: {$exists: false}}, function(error, projects){
+        projects.forEach(function(project) {
+            db.pages.insert({
+                project_id: project._id,
+                url: project.url
+            });
+            project.started_at = new Date();
+            db.projects.save(project);
+        });
+    });
+}, 100);
+
+main();
