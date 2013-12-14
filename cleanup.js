@@ -9,6 +9,7 @@ db.pages.find().skip(1, function(err, elems) {
 db.pages.find({}, function(error, pages) {
     pages.forEach(function(page) {
         delete page.downloaded_at;
+        delete page.checked_at;
         db.pages.save(page);
     });
 });

@@ -1,7 +1,7 @@
 var jsdom = require('jsdom'),
     db = require("mongojs").connect("spell", ["pages", "projects"]),
     fs = require("fs"),
-    jquery = fs.readFileSync("./jquery-2.0.3.min.js", "utf-8"),
+    jquery = fs.readFileSync("./htdocs/js/jquery-2.0.3.min.js", "utf-8"),
     request = require('request');
 
 
@@ -40,6 +40,8 @@ var getWords = function($) {
     var text = $('body').html()
         .replace(/(<([^>]+)>)/ig, ' ')
         .replace(/&.*?;/g, " ")
+        .replace(/(ё)/g, "е")
+        .replace(/(Ё)/g, "Е")
         .replace(/[^a-zA-Zа-яА-Я]/g, " ")
         .replace(/[0-9]/g, " ");
     var wordsDirty = text.split(/\s+/);

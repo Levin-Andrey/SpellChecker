@@ -68,7 +68,7 @@ SpellChecker.prototype.parseHunspellOutput = function(str) {
 };
 
 var main = function() {
-    db.pages.findOne({checked_at: {$exists: false}}, function(err, page) {
+    db.pages.findOne({checked_at: {$exists: false}, words: {$exists: true}}, function(err, page) {
         if( err || !page) {
             console.log("No pages found");
             setTimeout(main, 10000);
@@ -78,14 +78,16 @@ var main = function() {
         var processWord = function(word) {
             spellChecker.checkWord(word, function(err, variants) {
                 if (err) {
-                    console.log(word, variants);
+                    console.log("Inserting error");
                     db.errors.findAndModify({
                         query: {
                             project_id: page.project_id,
-                            word: word
+                            word: word,
+                            variants: variants
                         },
                         update: {
                             $addToSet: {page_ids: page._id},
+                            $inc: {pages_count: 1},
                             $setOnInsert: {created: new Date()}
                         },
                         upsert: true
