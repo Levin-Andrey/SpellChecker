@@ -1,16 +1,11 @@
-var db = require("mongojs").connect("spell", ["pages", "projects"]);
+var db = require("mongojs").connect("spell", ["test"]);
 
-var a = new Date();
-a.setDate(a.getDate() - 2);
-
-db.pages.count(
-    {
-        $or: [
-            {downloadedAt: {$exists: false}},
-            {downloadedAt: {$lt: a}}
-        ]
-    },
-    function(err, elems) {
-        console.log(elems);
-    }
-);
+db.test.findAndModify({
+    query: {project_id: 123, word: 'mama'},
+    update: {$addToSet: {page_ids: 4}},
+    upsert: true
+}, function() {
+    db.test.find({}, function(err, test) {
+        console.log(test);
+    });
+});
