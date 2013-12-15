@@ -9,7 +9,7 @@ var getDb = function() {
 app.get('/api/errors', function(req, res) {
     var db = getDb();
     db.errors.find({ignore: {$exists: false}}, {created:0, project_id: 0})
-        .sort({pages_count: -1}, function(err, errors) {
+        .limit(5).sort({pages_count: -1}, function(err, errors) {
         var page_ids = [];
         errors.forEach(function(error) {
             error.page_ids.forEach(function(page_id) {

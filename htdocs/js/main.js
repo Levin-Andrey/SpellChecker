@@ -1,7 +1,10 @@
-var $tpl, $container, errors;
+var $tpl, $container, errors = [];
 var serverUrl = "//" + document.domain + "/api/";
 
-var createNewElement = function() {
+var addNewError = function() {
+    if (errors.length < 10) {
+        getErrors(function(){});
+    }
     var error =  errors.shift();
     if (!error) {
         return;
@@ -30,6 +33,14 @@ var createNewElement = function() {
     $el.appendTo($container);
 };
 
+var getErrors = function(callback) {
+    $.ajax({url: serverUrl + 'errors'}).done(function(data) {
+        errors = data.errors;
+        console.log(errors);
+        callback();
+    });
+};
+
 var createStatsBlock = function() {
     updateProjectStats();
     $statsBlock = $("div.statistics.js-template");
@@ -54,10 +65,9 @@ var updateProjectStats = function() {
 $(function() {
     $tpl = $(".js-template.ortho-error-row");
     $container = $('#errors-container');
-    $.ajax({url: serverUrl + 'errors'}).done(function(data) {
-        errors = data.errors;
+    getErrors(function(){
         for (var i = 0; i < 5; i++) {
-            createNewElement();
+            addNewError();
         }
         createStatsBlock();
     });
@@ -69,13 +79,13 @@ $(function() {
         var id = $el.find(".error_id").val();
         $el.remove();
         $.ajax({url: serverUrl + 'errors/' + id + '/ignore'}).done(updateProjectStats);
-        createNewElement();
+        addNewError();
     });
     $(document).on('click', "a.fix", function() {
         var $el = $(this).closest(".ortho-error");
         var id = $el.find(".error_id").val();
         $el.remove();
         $.ajax({url: serverUrl + 'errors/' + id + '/fixed'}).done(updateProjectStats);
-        createNewElement();
+        addNewError();
     });
 });
