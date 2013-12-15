@@ -55,6 +55,8 @@
             var id = getProjectId();
             renderErrors(id);
             renderStats(id);
+            window.asyncLoadDone();
         });
     </script>
 {% endblock %}
+{% block sync %}{% endblock%}
