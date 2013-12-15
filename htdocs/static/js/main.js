@@ -51,12 +51,12 @@ var createStatsBlock = function() {
 var updateProjectStats = function() {
     var id = '52aa34e9be41e08096c046d0';
     $.ajax({url: serverUrl + 'projects/' + id + '/stats'}).done(function(data) {
-        $("#total_typos").text(data.total_typos);
+        $("#typos_to_review").text(data.typos_to_review);
         $("#typos_ignored").text(data.typos_ignored);
         $("#pages_analyzed").text(data.pages_analyzed);
         $("#pages_left_to_download").text(data.pages_left_to_download);
         $("#pages_left_to_check").text(data.pages_left_to_check);
-        if (data.pages_left > 0) {
+        if (data.pages_left_to_download > 0 || data.pages_left_to_check) {
             setTimeout(updateProjectStats, 300);
         }
     });

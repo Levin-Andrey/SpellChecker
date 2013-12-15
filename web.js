@@ -26,7 +26,7 @@ app.get('/about', function (req, res) {
 app.get('/api/errors', function(req, res) {
     var db = getDb();
     db.errors.find({ignore: {$exists: false}}, {created:0, project_id: 0})
-        .limit(5).sort({pages_count: -1}, function(err, errors) {
+        .limit(100).sort({pages_count: -1}, function(err, errors) {
         var page_ids = [];
         errors.forEach(function(error) {
             error.page_ids.forEach(function(page_id) {
@@ -115,8 +115,8 @@ app.get('/api/projects/:id/stats', function(req, res) {
             result.pages_left_to_download = pages_left_to_download;
             db.pages.count({project_id: id, checked_at: {$exists: false}}, function (err, pages_left_to_check) {
                 result.pages_left_to_check = pages_left_to_check;
-                db.errors.count({project_id: id}, function(err, total_typos) {
-                    result.total_typos = total_typos;
+                db.errors.count({project_id: id, ignore: {$exists: false}}, function(err, typos_to_review) {
+                    result.typos_to_review = typos_to_review;
                     db.errors.count({ignore: {$exists: true}}, function(err, typos_ignored) {
                         result.typos_ignored = typos_ignored;
                         res.send(result);
