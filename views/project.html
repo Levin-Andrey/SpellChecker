@@ -47,8 +47,14 @@
     </div>
 </div>
 {% endblock %}
-
 {% block footer %}
-{% parent %}
-<script type="text/javascript" src="/static/js/main.js"></script>
+    {% parent %}
+    <script type="text/javascript" src="/static/js/project.js"></script>
+    <script type="text/javascript">
+        $(function() {
+            var id = getProjectId();
+            renderErrors(id);
+            renderStats(id);
+        });
+    </script>
 {% endblock %}

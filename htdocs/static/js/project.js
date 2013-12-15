@@ -41,7 +41,7 @@ var getErrors = function(callback) {
     });
 };
 
-var createStatsBlock = function() {
+var renderStats = function() {
     updateProjectStats();
     $statsBlock = $(".project-stats.js-template");
     $statsBlock.appendTo($("#project-stats-container"));
@@ -62,14 +62,44 @@ var updateProjectStats = function() {
     });
 };
 
-$(function() {
+var isUrl = function(url) {
+    var regexp = /^(http(?:s)?\:\/\/[a-zA-Z0-9\-]+(?:\.[a-zA-Z0-9\-]+)*\.[a-zA-Z]{2,6}(?:\/?|(?:\/[\w\-]+)*)(?:\/?|\/\w+\.[a-zA-Z]{2,4}(?:\?[\w]+\=[\w\-]+)?)?(?:\&[\w]+\=[\w\-]+)*)$/;
+    return regexp.test(url);
+};
+
+var getProjectId = function() {
+    var $_GET = getGetParams();
+    var url = $_GET['url'];
+    if (!url || !isUrl(url)) {
+        window.location = "/";
+    }
+    $.ajax({
+        url: serverUrl + 'projects/',
+        type: "POST",
+        data: {url: url}
+    }).done(function(data) {
+        console.log(data);
+    });
+};
+
+var getGetParams = function() {
+    var prmstr = window.location.search.substr(1);
+    prmarr = prmstr.split ("&");
+    var params = {};
+    for ( var i = 0; i < prmarr.length; i++) {
+        var tmparr = prmarr[i].split("=");
+        params[tmparr[0]] = tmparr[1];
+    }
+    return params;
+};
+
+var renderErrors = function() {
     $tpl = $(".js-template.ortho-error-row");
     $container = $('#errors-container');
     getErrors(function(){
         for (var i = 0; i < 5; i++) {
             addNewError();
         }
-        createStatsBlock();
     });
     $(document).on('click', "a.toggle-url-list", function() {
         $(this).closest(".ortho-error").find(".urlList").slideToggle();
@@ -88,4 +118,4 @@ $(function() {
         $.ajax({url: serverUrl + 'errors/' + id + '/fixed'}).done(updateProjectStats);
         addNewError();
     });
-});
+};

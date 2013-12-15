@@ -24,6 +24,10 @@ app.get('/about', function (req, res) {
     res.render('about');
 });
 
+app.get('/project', function (req, res) {
+    res.render('project');
+});
+
 app.get('/api/errors', function(req, res) {
     var db = getDb();
     db.errors.find({ignore: {$exists: false}}, {created:0, project_id: 0})
@@ -135,16 +139,16 @@ app.post('/api/projects/', function(req, res) {
         return;
     }
     var db = getDb();
-    var result = {};
-
     db.projects.findAndModify({
         query: {url: url},
+        update: {$setOnInsert: {url: url}},
+        upsert: true,
         new: true
     }, function(err, project){
         if (project && !err) {
-            res.send({error: "ok", "project_id": project._id});
+            res.send({error: "ok", project_id: project._id});
         } else {
-            res.send({error: "Unknown error"});
+            res.send({error: {project: project, err: err}});
         }
     });
 });
@@ -156,7 +160,7 @@ app.use(function(err, req, res, next){
 
 // for dev: listen socket in the current directory
 // nginx proxy use this socket to handle non-static requests
-var socket = './web.sock'
+var socket = './web.sock';
 fs.unlink(socket, function () {
     app.listen(socket, function () {
         fs.chmod(socket, 0777);
