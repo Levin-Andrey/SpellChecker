@@ -14,13 +14,11 @@
     <div class="navbar-inner">
         <div class="container">
             <a class="brand" href="/">Spell Checker</a>
-            <div class="nav-collapse collapse">
-                <ul class="nav">
-                    <li class="active"><a href="/">Home</a></li>
-                    <li><a href="/about/">About</a></li>
-                    <li><a href="#contact">Write us</a></li>
-                </ul>
-            </div><!--/.nav-collapse -->
+            <ul class="nav">
+                <li><a href="/">Home</a></li>
+                <li><a href="/about/">About</a></li>
+                <li><a href="#contact">Write us</a></li>
+            </ul>
         </div>
     </div>
 </div>
@@ -30,6 +28,10 @@
 {% block footer %}
     <script type="text/javascript" src="/static/js/jquery-2.0.3.min.js"></script>
     <script type="text/javascript">
+        (function () {
+            // highlight current menu item
+            $('.nav').find('a[href="' + document.URL.split('?')[0].replace(/^\w+:\/\/.*?\//, '/') + '"]').parent().addClass('active');
+        })();
         window.asyncLoadDone = function () {
             $(document).ready(function () {
                 $('body').css('visibility','visible');
