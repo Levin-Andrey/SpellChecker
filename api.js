@@ -1,7 +1,8 @@
+var fs = require("fs");
 var express = require('express');
-var app = express();
 var mongojs = require('mongojs');
 
+var app = express();
 var getDb = function() {
     return db = mongojs.connect("spell", ["pages", "errors", "projects"]);
 };
@@ -110,4 +111,9 @@ app.get('/api/projects/:id/stats', function(req, res) {
     });
 });
 
-app.listen(8080);
+// for dev: listen socket in the current directory
+fs.unlink("./api.sock", function () {
+    app.listen("./api.sock", function () {
+        fs.chmod("./api.sock", 0777)
+    });
+});
