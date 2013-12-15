@@ -53,6 +53,7 @@
     <script type="text/javascript">
         $(function() {
             var preloaded_typos = [];
+            var reviewed_cache = {};
             var $tpl = $(".js-template.ortho-error-row");
             var $container = $('#errors-container');
             var TYPOS_PER_PAGE = 5;
@@ -65,7 +66,8 @@
                 var id = $el.find(".error_id").val();
                 $.ajax({url: serverUrl + 'typos/' + id + '/ignore'}).done(function() {
                     $el.remove();
-                    renderTypo(preloaded_typos.shift(), $tpl, $container);
+                    reviewed_cache[id] = true;
+                    ensureHasTypoToRender();
                 });
             });
             $(document).on('click', "a.fix", function() {
@@ -73,27 +75,52 @@
                 var id = $el.find(".error_id").val();
                 $.ajax({url: serverUrl + 'typos/' + id + '/fixed'}).done(function() {
                     $el.remove();
-                    renderTypo(preloaded_typos.shift(), $tpl, $container);
+                    reviewed_cache[id] = true;
+                    ensureHasTypoToRender();
                 });
             });
 
+            var ensureHasTypoToRender = function() {
+                var numOfTyposOnScreen = $(".error_id").length;
+                for (var i = numOfTyposOnScreen; i <= TYPOS_PER_PAGE; i++) {
+                    var typo = getTypoToBubble();
+                    if (!typo) {
+                        break;
+                    }
+                    renderTypo(typo, $tpl, $container);
+                }
+            };
+
+            var getTypoToBubble = function() {
+                var errorsOnScreen = [];
+                $(".error_id").each(function() {
+                    errorsOnScreen[$(this).val()] = true;
+                });
+                for (var i in preloaded_typos) {
+                    var id = preloaded_typos[i]._id;
+                    if (!errorsOnScreen[id] && !reviewed_cache[id]) {
+                        return preloaded_typos[i];
+                    }
+                }
+                return null;
+            };
 
             getProjectId(function(project_id) {
-                setInterval(function() {
-                    updateProjectStats(project_id);
-                    if (preloaded_typos.length < 10) {
-                        loadTypos(project_id, function(typos) {
-                            preloaded_typos = typos;
-                        });
-                    }
-                }, 100);
-
+                updateProjectStats(project_id);
                 loadTypos(project_id, function(typos){
-                    for (var i = 0; i < TYPOS_PER_PAGE; i++) {
+                    var i = Math.min(TYPOS_PER_PAGE, typos.length);
+                    while (i--) {
                         var typo = typos.shift();
                         renderTypo(typo, $tpl, $container);
                     }
                     window.asyncLoadDone();
+                    setInterval(function() {
+                        updateProjectStats(project_id);
+                        loadTypos(project_id, function(typos) {
+                            preloaded_typos = typos;
+                            ensureHasTypoToRender();
+                        });
+                    }, 100);
                 });
             });
         });
