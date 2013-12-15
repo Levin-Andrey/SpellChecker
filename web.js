@@ -129,7 +129,7 @@ app.get('/api/projects/:id/stats', function(req, res) {
 
 app.use(function(err, req, res, next){
     console.error(err.stack);
-    res.send(500, 'Internal server error =(');
+    res.send(500);
 });
 
 // for dev: listen socket in the current directory

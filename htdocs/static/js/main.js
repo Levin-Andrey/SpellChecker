@@ -56,7 +56,7 @@ var updateProjectStats = function() {
         $("#pages_analyzed").text(data.pages_analyzed);
         $("#pages_left_to_download").text(data.pages_left_to_download);
         $("#pages_left_to_check").text(data.pages_left_to_check);
-        if (data.pages_left_to_download > 0 || data.pages_left_to_check) {
+        if (data.pages_left_to_download > 0 || data.pages_left_to_check > 0) {
             setTimeout(updateProjectStats, 300);
         }
     });
