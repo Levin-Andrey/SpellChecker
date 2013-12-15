@@ -3,14 +3,18 @@
 {% block title %}Marketing bullshit{% endblock %}
 
 {% block content %}
-<div class="row">
-    <h1>Marketing bullshit</h1>
-    <p>Lorem ipsum, lorem ipsum, lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ipsum</p>
-    <form>
-        <input type="text" name="url" method="post" action="" value="http://ya.ru/" />
-    </form>
-</div>
-{% endblock %}
-{% block footer %}
-{% parent %}
+    <div class="hero-unit">
+        <h1 style="padding-bottom: 20px">Get rid of misspellings!</h1>
+        <p>
+            Orpho.io mission in this life is to help you make your website misspelling-free.
+            Just put your frontpage URL to the form below and get the whole site
+            checked for misspellings in real-time!
+        </p>
+        <form method="get" style="padding-top: 10px;" action="/project/" class="form-inline">
+            <input type="text" name="url" id="url-input" class="input-xxlarge btn-large" placeholder="http://orpho.io/"
+                style="height: 35px; font-size: 22px; padding: 7px 2px 0px 14px; width: 635px" />
+            <input type="submit" class="btn btn-large btn-primary" value="Check this site"/>
+        </form>
+
+    </div>
 {% endblock %}

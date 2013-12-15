@@ -55,7 +55,9 @@
             getProjectId(function(id) {
                 renderErrors(id);
                 renderStats(id);
+                window.asyncLoadDone();
             });
         });
     </script>
 {% endblock %}
+{% block sync %}{% endblock%}
