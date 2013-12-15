@@ -10,11 +10,7 @@ app.set('view cache', false);
 app.set('views', __dirname + '/views');
 swig.setDefaults({ cache: false }); // TODO: use cache on prod
 app.use(express.bodyParser());
-
-
-var getDb = function() {
-    return db = mongojs.connect("spell", ["pages", "errors", "projects"]);
-};
+var db = mongojs.connect("spell", ["pages", "errors", "projects"]);
 
 app.get('/', function (req, res) {
     res.render('index');
@@ -28,8 +24,7 @@ app.get('/project', function (req, res) {
     res.render('project');
 });
 
-app.get('/api/errors/:id/ignore', function(req, res) {
-    var db = getDb();
+app.get('/api/typos/:id/ignore', function(req, res) {
     try {
         var id = mongojs.ObjectId(req.params.id);
     } catch (e) {
@@ -41,8 +36,7 @@ app.get('/api/errors/:id/ignore', function(req, res) {
         update: {$set: {ignore: true}}
     }, function(err, result){
         if (err) {
-            res.send({error: err});
-            return;
+            throw err;
         }
         if (result) {
             res.send({error: "ok"});
@@ -52,20 +46,19 @@ app.get('/api/errors/:id/ignore', function(req, res) {
     });
 });
 
-app.get('/api/errors/:id/fixed', function(req, res) {
+app.get('/api/typos/:id/fixed', function(req, res) {
     try {
         var id = mongojs.ObjectId(req.params.id);
     } catch (e) {
         res.send({error: "incorrect id"});
         return;
     }
-    var db = getDb();
-    db.errors.findOne({_id: id}, function(err, spellErr) {
-        if (!spellErr) {
+    db.errors.findOne({_id: id}, function(err, typo) {
+        if (!typo) {
             res.send({error: "not found"});
             return;
         }
-        db.pages.find({_id: {$in: spellErr.page_ids}}, function(err2, pages) {
+        db.pages.find({_id: {$in: typo.page_ids}}, function(err2, pages) {
             pages.forEach(function(page) {
                 delete page.downloaded_at;
                 delete page.checked_at;
@@ -84,7 +77,6 @@ app.get('/api/projects/:id/stats', function(req, res) {
         res.send({error: "incorrect id"});
         return;
     }
-    var db = getDb();
     var result = {};
     db.pages.count({project_id: id, downloaded_at: {$exists: true}}, function(err, pages_analyzed) {
         result.pages_analyzed = pages_analyzed;
@@ -96,7 +88,7 @@ app.get('/api/projects/:id/stats', function(req, res) {
                     result.typos_to_review = typos_to_review;
                     db.errors.count({project_id: id, ignore: {$exists: true}}, function(err, typos_ignored) {
                         result.typos_ignored = typos_ignored;
-                        res.send(result);
+                        res.send({error: 'ok', stats: result});
                     });
                 });
             });
@@ -104,19 +96,21 @@ app.get('/api/projects/:id/stats', function(req, res) {
     });
 });
 
-app.get('/api/projects/:id/errors', function(req, res) {
+app.get('/api/projects/:id/typos', function(req, res) {
     try {
         var id = mongojs.ObjectId(req.params.id);
     } catch (e) {
         res.send({error: "incorrect id"});
         return;
     }
-    var db = getDb();
-    db.errors.find({project_id: id, ignore: {$exists: false}}, {created:0, project_id: 0})
-        .limit(100).sort({pages_count: -1}, function(err, errors) {
+    db.errors.find({project_id: id, ignore: {$exists: false}}, {created: 0, project_id: 0})
+        .limit(100).sort({pages_count: -1}, function(err, typos) {
+            if (err) {
+                throw err;
+            }
             var page_ids = [];
-            errors.forEach(function(error) {
-                error.page_ids.forEach(function(page_id) {
+            typos.forEach(function(typo) {
+                typo.page_ids.forEach(function(page_id) {
                     page_ids.push(page_id);
                 });
             });
@@ -125,15 +119,14 @@ app.get('/api/projects/:id/errors', function(req, res) {
                 pages.forEach(function(page) {
                     pageData[page._id] = page.url;
                 });
-                errors.forEach(function(error) {
-                    error.pages = [];
-                    error.page_ids.forEach(function (page_id) {
-                        error.pages.push(pageData[page_id]);
+                typos.forEach(function(typo) {
+                    typo.pages = [];
+                    typo.page_ids.forEach(function (page_id) {
+                        typo.pages.push(pageData[page_id]);
                     });
-                    delete error.page_ids;
+                    delete typo.page_ids;
                 });
-                res.send({errors: errors});
-                db.close();
+                res.send({typos: typos});
             });
         });
 });
@@ -145,7 +138,6 @@ app.post('/api/projects/', function(req, res) {
         res.send({error: "no url"});
         return;
     }
-    var db = getDb();
     db.projects.findAndModify({
         query: {url: url},
         update: {$setOnInsert: {url: url}},
@@ -155,7 +147,7 @@ app.post('/api/projects/', function(req, res) {
         if (project && !err) {
             res.send({error: "ok", project_id: project._id});
         } else {
-            res.send({error: {project: project, err: err}});
+            throw {project: project, err: err};
         }
     });
 });

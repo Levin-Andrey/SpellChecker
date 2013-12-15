@@ -95,7 +95,7 @@ var main = function() {
         function(err, pages) {
             if( err || !pages || pages.length == 0) {
                 console.log("No pages found");
-                setTimeout(main, 100000);
+                setTimeout(main, 1);
                 return;
             }
             var counter = new Counter(pages.length);
@@ -105,7 +105,7 @@ var main = function() {
                     db.pages.update({_id: page._id}, {$set: {words: words, downloaded_at: new Date()}});
                     findAndInsertUrls($, page);
                     if (counter.inc()) {
-                        setTimeout(main, 100);
+                        setTimeout(main, 1);
                     };
                 });
             });
@@ -128,6 +128,6 @@ setInterval(function() {
             });
         });
     });
-}, 100);
+}, 1);
 
 main();

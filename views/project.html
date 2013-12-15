@@ -34,7 +34,7 @@
         </div>
     </div>
     <div id="project-stats-container" class="span4">
-        <div class="project-stats well js-template">
+        <div class="project-stats well">
             <h2>Project stats</h2>
             <ul>
                 <li>Total typos: <span id="typos_to_review"></span></li>
@@ -52,10 +52,49 @@
     <script type="text/javascript" src="/static/js/project.js"></script>
     <script type="text/javascript">
         $(function() {
-            getProjectId(function(id) {
-                renderErrors(id);
-                renderStats(id);
-                window.asyncLoadDone();
+            var preloaded_typos = [];
+            var $tpl = $(".js-template.ortho-error-row");
+            var $container = $('#errors-container');
+            var TYPOS_PER_PAGE = 5;
+
+            $(document).on('click', "a.toggle-url-list", function() {
+                $(this).closest(".ortho-error").find(".urlList").slideToggle();
+            });
+            $(document).on('click', "a.ignore", function() {
+                var $el = $(this).closest(".ortho-error");
+                var id = $el.find(".error_id").val();
+                $.ajax({url: serverUrl + 'typos/' + id + '/ignore'}).done(function() {
+                    $el.remove();
+                    renderTypo(preloaded_typos.shift(), $tpl, $container);
+                });
+            });
+            $(document).on('click', "a.fix", function() {
+                var $el = $(this).closest(".ortho-error");
+                var id = $el.find(".error_id").val();
+                $.ajax({url: serverUrl + 'typos/' + id + '/fixed'}).done(function() {
+                    $el.remove();
+                    renderTypo(preloaded_typos.shift(), $tpl, $container);
+                });
+            });
+
+
+            getProjectId(function(project_id) {
+                setInterval(function() {
+                    updateProjectStats(project_id);
+                    if (preloaded_typos.length < 10) {
+                        loadTypos(project_id, function(typos) {
+                            preloaded_typos = typos;
+                        });
+                    }
+                }, 100);
+
+                loadTypos(project_id, function(typos){
+                    for (var i = 0; i < TYPOS_PER_PAGE; i++) {
+                        var typo = typos.shift();
+                        renderTypo(typo, $tpl, $container);
+                    }
+                    window.asyncLoadDone();
+                });
             });
         });
     </script>

@@ -1,4 +1,4 @@
-var db = require("mongojs").connect("spell", ["pages", "projects", "errors"]);
+var db = require("mongojs").connect("spell", ["pages", "projects", "typos"]);
 
 db.pages.find().skip(1, function(err, elems) {
     elems.forEach(function(elem) {
