@@ -43,8 +43,8 @@ var getErrors = function(callback) {
 
 var createStatsBlock = function() {
     updateProjectStats();
-    $statsBlock = $("div.statistics.js-template");
-    $statsBlock.appendTo($container.find(".row:not(.js-template)").first());
+    $statsBlock = $(".project-stats.js-template");
+    $statsBlock.appendTo($("#project-stats-container"));
     $statsBlock.removeClass("js-template");
 };
 

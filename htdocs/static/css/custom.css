@@ -44,3 +44,21 @@ span.help-block {
 .js-template {
     display: none;
 }
+.project-stats {
+    padding-top: 10px;
+    padding-bottom: 12px;
+}
+.project-stats h2 {
+    font-size: 16px;
+    border-bottom: 1px solid #ddd;
+    line-height: 30px;
+    margin: 0;
+}
+.project-stats ul {
+    margin: 0;
+    margin-top: 5px;
+}
+.project-stats ul li {
+    margin: 0;
+    list-style-type: none;
+}
