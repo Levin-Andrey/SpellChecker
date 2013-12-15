@@ -28,34 +28,6 @@ app.get('/project', function (req, res) {
     res.render('project');
 });
 
-app.get('/api/errors', function(req, res) {
-    var db = getDb();
-    db.errors.find({ignore: {$exists: false}}, {created:0, project_id: 0})
-        .limit(100).sort({pages_count: -1}, function(err, errors) {
-        var page_ids = [];
-        errors.forEach(function(error) {
-            error.page_ids.forEach(function(page_id) {
-                page_ids.push(page_id);
-            });
-        });
-        var pageData = {};
-        db.pages.find({_id: {$in: page_ids}}, {_id: 1, url:1}, function(err, pages){
-            pages.forEach(function(page) {
-                pageData[page._id] = page.url;
-            });
-            errors.forEach(function(error) {
-                error.pages = [];
-                error.page_ids.forEach(function (page_id) {
-                    error.pages.push(pageData[page_id]);
-                });
-                delete error.page_ids;
-            });
-            res.send({errors: errors});
-            db.close();
-        });
-    });
-});
-
 app.get('/api/errors/:id/ignore', function(req, res) {
     var db = getDb();
     try {
@@ -122,7 +94,7 @@ app.get('/api/projects/:id/stats', function(req, res) {
                 result.pages_left_to_check = pages_left_to_check;
                 db.errors.count({project_id: id, ignore: {$exists: false}}, function(err, typos_to_review) {
                     result.typos_to_review = typos_to_review;
-                    db.errors.count({ignore: {$exists: true}}, function(err, typos_ignored) {
+                    db.errors.count({project_id: id, ignore: {$exists: true}}, function(err, typos_ignored) {
                         result.typos_ignored = typos_ignored;
                         res.send(result);
                     });
@@ -131,6 +103,41 @@ app.get('/api/projects/:id/stats', function(req, res) {
         });
     });
 });
+
+app.get('/api/projects/:id/errors', function(req, res) {
+    try {
+        var id = mongojs.ObjectId(req.params.id);
+    } catch (e) {
+        res.send({error: "incorrect id"});
+        return;
+    }
+    var db = getDb();
+    db.errors.find({project_id: id, ignore: {$exists: false}}, {created:0, project_id: 0})
+        .limit(100).sort({pages_count: -1}, function(err, errors) {
+            var page_ids = [];
+            errors.forEach(function(error) {
+                error.page_ids.forEach(function(page_id) {
+                    page_ids.push(page_id);
+                });
+            });
+            var pageData = {};
+            db.pages.find({_id: {$in: page_ids}}, {_id: 1, url:1}, function(err, pages){
+                pages.forEach(function(page) {
+                    pageData[page._id] = page.url;
+                });
+                errors.forEach(function(error) {
+                    error.pages = [];
+                    error.page_ids.forEach(function (page_id) {
+                        error.pages.push(pageData[page_id]);
+                    });
+                    delete error.page_ids;
+                });
+                res.send({errors: errors});
+                db.close();
+            });
+        });
+});
+
 
 app.post('/api/projects/', function(req, res) {
     var url = req.body.url;

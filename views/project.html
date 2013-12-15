@@ -37,11 +37,11 @@
         <div class="project-stats well js-template">
             <h2>Project stats</h2>
             <ul>
-                <li>Total typos: <span id="typos_to_review">900</span></li>
-                <li>Typos ignored: <span id="typos_ignored">12</span></li>
-                <li>Pages analyzed: <span id="pages_analyzed">267</span></li>
-                <li>Pages left to scan: <span id="pages_left_to_download">0</span></li>
-                <li>Pages left to check: <span id="pages_left_to_check">0</span></li>
+                <li>Total typos: <span id="typos_to_review"></span></li>
+                <li>Typos ignored: <span id="typos_ignored"></span></li>
+                <li>Pages analyzed: <span id="pages_analyzed"></span></li>
+                <li>Pages left to scan: <span id="pages_left_to_download"></span></li>
+                <li>Pages left to check: <span id="pages_left_to_check">    </span></li>
             </ul>
         </div>
     </div>
@@ -52,9 +52,10 @@
     <script type="text/javascript" src="/static/js/project.js"></script>
     <script type="text/javascript">
         $(function() {
-            var id = getProjectId();
-            renderErrors(id);
-            renderStats(id);
+            getProjectId(function(id) {
+                renderErrors(id);
+                renderStats(id);
+            });
         });
     </script>
 {% endblock %}

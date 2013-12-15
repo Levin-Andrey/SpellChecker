@@ -1,9 +1,9 @@
 var $tpl, $container, errors = [];
 var serverUrl = "//" + document.domain + "/api/";
 
-var addNewError = function() {
+var addNewError = function(project_id) {
     if (errors.length < 10) {
-        getErrors(function(){});
+        getErrors(project_id, function(){});
     }
     var error =  errors.shift();
     if (!error) {
@@ -33,24 +33,23 @@ var addNewError = function() {
     $el.appendTo($container);
 };
 
-var getErrors = function(callback) {
-    $.ajax({url: serverUrl + 'errors'}).done(function(data) {
+var getErrors = function(project_id, callback) {
+    $.ajax({url: serverUrl + 'projects/' + project_id + '/errors'}).done(function(data) {
         errors = data.errors;
         console.log(errors);
         callback();
     });
 };
 
-var renderStats = function() {
-    updateProjectStats();
+var renderStats = function(project_id) {
+    updateProjectStats(project_id);
     $statsBlock = $(".project-stats.js-template");
     $statsBlock.appendTo($("#project-stats-container"));
     $statsBlock.removeClass("js-template");
 };
 
-var updateProjectStats = function() {
-    var id = '52aa34e9be41e08096c046d0';
-    $.ajax({url: serverUrl + 'projects/' + id + '/stats'}).done(function(data) {
+var updateProjectStats = function(project_id) {
+    $.ajax({url: serverUrl + 'projects/' + project_id + '/stats'}).done(function(data) {
         $("#typos_to_review").text(data.typos_to_review);
         $("#typos_ignored").text(data.typos_ignored);
         $("#pages_analyzed").text(data.pages_analyzed);
@@ -67,7 +66,7 @@ var isUrl = function(url) {
     return regexp.test(url);
 };
 
-var getProjectId = function() {
+var getProjectId = function(callback) {
     var $_GET = getGetParams();
     var url = $_GET['url'];
     if (!url || !isUrl(url)) {
@@ -78,7 +77,11 @@ var getProjectId = function() {
         type: "POST",
         data: {url: url}
     }).done(function(data) {
-        console.log(data);
+        if (data.error == "ok") {
+            callback(data.project_id)
+        } else {
+            window.location = "/";
+        }
     });
 };
 
@@ -93,10 +96,10 @@ var getGetParams = function() {
     return params;
 };
 
-var renderErrors = function() {
+var renderErrors = function(project_id) {
     $tpl = $(".js-template.ortho-error-row");
     $container = $('#errors-container');
-    getErrors(function(){
+    getErrors(project_id, function(){
         for (var i = 0; i < 5; i++) {
             addNewError();
         }
