@@ -36,7 +36,6 @@ var addNewError = function() {
 var getErrors = function(callback) {
     $.ajax({url: serverUrl + 'errors'}).done(function(data) {
         errors = data.errors;
-        console.log(errors);
         callback();
     });
 };
@@ -72,6 +71,7 @@ var getProjectId = function() {
     var url = $_GET['url'];
     if (!url || !isUrl(url)) {
         window.location = "/";
+        return;
     }
     $.ajax({
         url: serverUrl + 'projects/',
@@ -84,11 +84,11 @@ var getProjectId = function() {
 
 var getGetParams = function() {
     var prmstr = window.location.search.substr(1);
-    prmarr = prmstr.split ("&");
+    prmarr = prmstr.split("&");
     var params = {};
     for ( var i = 0; i < prmarr.length; i++) {
         var tmparr = prmarr[i].split("=");
-        params[tmparr[0]] = tmparr[1];
+        params[tmparr[0]] = decodeURIComponent(tmparr[1]);
     }
     return params;
 };
