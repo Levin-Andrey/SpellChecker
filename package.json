@@ -1,0 +1,11 @@
+{
+    "name": "Spellchecker",
+    "description": "Check your site for misspelling",
+    "version": "0.0.1",
+    "private": true,
+    "dependencies": {
+        "express": "3.4.7",
+        "mongojs": "0.9.9",
+        "swig": "1.2.2"
+    }
+}

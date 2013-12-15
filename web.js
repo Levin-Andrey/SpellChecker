@@ -1,11 +1,27 @@
-var fs = require("fs");
+var fs = require('fs');
 var express = require('express');
 var mongojs = require('mongojs');
+var swig = require('swig');
 
 var app = express();
+app.engine('html', swig.renderFile);
+app.set('view engine', 'html');
+app.set('view cache', false);
+app.set('views', __dirname + '/views');
+swig.setDefaults({ cache: false }); // TODO: use cache on prod
+
+
 var getDb = function() {
     return db = mongojs.connect("spell", ["pages", "errors", "projects"]);
 };
+
+app.get('/', function (req, res) {
+    res.render('index');
+});
+
+app.get('/api/test', function (req, res) {
+    res.render('test');
+});
 
 app.get('/api/errors', function(req, res) {
     var db = getDb();
@@ -111,9 +127,17 @@ app.get('/api/projects/:id/stats', function(req, res) {
     });
 });
 
+app.use(function(err, req, res, next){
+    console.error(err.stack);
+    res.send(500, 'Internal server error =(');
+});
+
 // for dev: listen socket in the current directory
-fs.unlink("./api.sock", function () {
-    app.listen("./api.sock", function () {
-        fs.chmod("./api.sock", 0777)
+// nginx proxy use this socket to handle non-static requests
+var socket = './web.sock'
+fs.unlink(socket, function () {
+    app.listen(socket, function () {
+        fs.chmod(socket, 0777);
+        console.log("Ready to serve requests!");
     });
 });

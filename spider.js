@@ -1,7 +1,7 @@
 var jsdom = require('jsdom'),
     db = require("mongojs").connect("spell", ["pages", "projects"]),
     fs = require("fs"),
-    jquery = fs.readFileSync("./htdocs/js/jquery-2.0.3.min.js", "utf-8"),
+    jquery = fs.readFileSync("./htdocs/static/js/jquery-2.0.3.min.js", "utf-8"),
     request = require('request');
 
 

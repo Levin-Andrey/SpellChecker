@@ -1,0 +1,13 @@
+{% extends '_layout.html' %}
+
+{% block title %}Test page{% endblock %}
+
+{% block head %}
+    {% parent %}
+    <!-- hello from swig template -->
+{% endblock %}
+
+{% block content %}
+<h1>Hello world</h1>
+<p>This is just a test page.</p>
+{% endblock %}
