@@ -19,6 +19,10 @@ app.get('/', function (req, res) {
     res.render('index');
 });
 
+app.get('/about', function (req, res) {
+    res.render('about');
+});
+
 app.get('/api/errors', function(req, res) {
     var db = getDb();
     db.errors.find({ignore: {$exists: false}}, {created:0, project_id: 0})
