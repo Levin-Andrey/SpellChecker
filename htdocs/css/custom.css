@@ -1,0 +1,46 @@
+body {
+    padding-top: 60px; /* 60px to make the container go all the way to the bottom of the topbar */
+}
+.btn-group {
+    padding-top:1px;
+}
+div.ortho-error {
+    line-height: 18px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    margin-bottom: 10px;
+}
+div.error-header {
+    background-color: #f9f9f9;
+    padding: 8px;
+}
+.ortho-error h4 {
+    margin-top: 0px;
+    margin-bottom: 0px;
+    font-size: 14px;
+}
+.help-block {
+    color: #999999;
+    font-size: 11px;
+}
+.variants {
+    width: 75%;
+    overflow: hidden;
+    height: 17px;
+    font-size:13px;
+    margin-bottom: 0px;
+    padding-top: 5px;
+}
+span.help-block {
+    display:inline;
+}
+.urlList {
+    border-top: 1px solid #dddddd;
+    padding: 8px;
+}
+.urlList > a {
+    display: block;
+}
+.js-template {
+    display: none;
+}

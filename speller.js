@@ -71,7 +71,7 @@ var main = function() {
     db.pages.findOne({checked_at: {$exists: false}, words: {$exists: true}}, function(err, page) {
         if( err || !page) {
             console.log("No pages found");
-            setTimeout(main, 10000);
+            setTimeout(main, 100000);
             return;
         }
         console.log(page.url, 'need to check', page.words.length, 'words');

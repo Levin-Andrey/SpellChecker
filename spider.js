@@ -95,7 +95,7 @@ var main = function() {
         function(err, pages) {
             if( err || !pages || pages.length == 0) {
                 console.log("No pages found");
-                setTimeout(main, 10000);
+                setTimeout(main, 100000);
                 return;
             }
             var counter = new Counter(pages.length);
