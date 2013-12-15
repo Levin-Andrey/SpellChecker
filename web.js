@@ -9,6 +9,7 @@ app.set('view engine', 'html');
 app.set('view cache', false);
 app.set('views', __dirname + '/views');
 swig.setDefaults({ cache: false }); // TODO: use cache on prod
+app.use(express.bodyParser());
 
 
 var getDb = function() {
@@ -76,13 +77,13 @@ app.get('/api/errors/:id/ignore', function(req, res) {
 });
 
 app.get('/api/errors/:id/fixed', function(req, res) {
-    var db = getDb();
     try {
         var id = mongojs.ObjectId(req.params.id);
     } catch (e) {
         res.send({error: "incorrect id"});
         return;
     }
+    var db = getDb();
     db.errors.findOne({_id: id}, function(err, spellErr) {
         if (!spellErr) {
             res.send({error: "not found"});
@@ -101,13 +102,13 @@ app.get('/api/errors/:id/fixed', function(req, res) {
 });
 
 app.get('/api/projects/:id/stats', function(req, res) {
-    var db = getDb();
     try {
         var id = mongojs.ObjectId(req.params.id);
     } catch (e) {
         res.send({error: "incorrect id"});
         return;
     }
+    var db = getDb();
     var result = {};
     db.pages.count({project_id: id, downloaded_at: {$exists: true}}, function(err, pages_analyzed) {
         result.pages_analyzed = pages_analyzed;
@@ -124,6 +125,27 @@ app.get('/api/projects/:id/stats', function(req, res) {
                 });
             });
         });
+    });
+});
+
+app.post('/api/projects/', function(req, res) {
+    var url = req.body.url;
+    if (!url) {
+        res.send({error: "no url"});
+        return;
+    }
+    var db = getDb();
+    var result = {};
+
+    db.projects.findAndModify({
+        query: {url: url},
+        new: true
+    }, function(err, project){
+        if (project && !err) {
+            res.send({error: "ok", "project_id": project._id});
+        } else {
+            res.send({error: "Unknown error"});
+        }
     });
 });
 

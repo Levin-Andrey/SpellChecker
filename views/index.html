@@ -1,54 +1,16 @@
 {% extends '_layout.html' %}
 
-{% block title %}Results{% endblock %}
+{% block title %}Marketing bullshit{% endblock %}
 
 {% block content %}
-    <div class="row">
-        <h1>Results of checking your website</h1>
-        <p>Use "fixed" button to notify, that you have corrected the typo. Later, we will check it once more,
-            if the misprint really was fixed.</p>
-        <p>Use "ignore" button, if the misprint is not really a misprint.
-            Proper names or some specific words can be detected as typos. Once you pressed "ignore" button,
-            the misprint will be removed from your project forever.
-        </p>
-    </div>
-    <div class="row">
-        <div id="errors-container" class="span8">
-            <div class="row ortho-error-row js-template">
-                <div class="ortho-error">
-                    <div class="error-header">
-                        <div class="pull-right">
-                            <div class="btn-group pull-right" style="width: 125px; margin: 5px auto;">
-                                <a class="btn btn-success fix" onclick="">Fixed</a>
-                                <a class="btn ignore" onclick="">Ignore</a>
-                            </div>
-                        </div>
-                        <div><h4><span class="error-word">Удлыоввовоывлл-флыво</span> <span class="help-block">found on
-                            <a class="toggle-url-list" href="#">301400 pages</a></span></h4></div>
-                        <div class="help-block variants">промышленности, недоумевая, сторонник</div>
-                        <input type="hidden" class="error_id" />
-                    </div>
-                    <div class="urlList hide">
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div id="project-stats-container" class="span4">
-            <div class="project-stats well js-template">
-                <h2>Project stats</h2>
-                <ul>
-                    <li>Total typos: <span id="typos_to_review">900</span></li>
-                    <li>Typos ignored: <span id="typos_ignored">12</span></li>
-                    <li>Pages analyzed: <span id="pages_analyzed">267</span></li>
-                    <li>Pages left to scan: <span id="pages_left_to_download">0</span></li>
-                    <li>Pages left to check: <span id="pages_left_to_check">0</span></li>
-                </ul>
-            </div>
-        </div>
-    </div>
+<div class="row">
+    <h1>Marketing bullshit</h1>
+    <p>Lorem ipsum, lorem ipsum, lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ipsum</p>
+    <form>
+        <input type="text" name="url" method="post" action="" value="http://ya.ru/" />
+    </form>
+</div>
 {% endblock %}
-
 {% block footer %}
-    {% parent %}
-    <script type="text/javascript" src="/static/js/main.js"></script>
+{% parent %}
 {% endblock %}

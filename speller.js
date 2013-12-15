@@ -91,7 +91,7 @@ var main = function() {
                             $setOnInsert: {created: new Date()}
                         },
                         upsert: true
-                    })
+                    });
                 }
                 if (!page.words.length) {
                     db.pages.update({_id: page._id}, {
