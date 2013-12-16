@@ -1,5 +1,6 @@
 var spawn = require('child_process').spawn,
-    db = require("mongojs").connect("spell", ["pages", "errors"]);;
+    db = require("mongojs").connect("spell", ["pages", "errors"]),
+    lev = require("./levenshtein.js");
 
 var SpellChecker = function() {
     this.wordsInProgress = [];
@@ -67,38 +68,51 @@ SpellChecker.prototype.parseHunspellOutput = function(str) {
     return this.parseVariants(variants);
 };
 
+var getSimilarVariants = function(word, variants, distance) {
+    var result = [];
+    variants.forEach(function(variant) {
+        if (lev.getEditDistance(word, variant) <= distance) {
+            result.push(variant);
+        }
+    });
+    return result;
+};
+
 var main = function() {
     db.pages.findOne({checked_at: {$exists: false}, words: {$exists: true}}, function(err, page) {
         if( err || !page) {
             console.log("No pages found");
-            setTimeout(main, 100000);
+            setTimeout(main, 1);
             return;
         }
         console.log(page.url, 'need to check', page.words.length, 'words');
         var processWord = function(word) {
             spellChecker.checkWord(word, function(err, variants) {
                 if (err) {
-                    console.log("Inserting error");
-                    db.errors.findAndModify({
-                        query: {
-                            project_id: page.project_id,
-                            word: word,
-                            variants: variants
-                        },
-                        update: {
-                            $addToSet: {page_ids: page._id},
-                            $inc: {pages_count: 1},
-                            $setOnInsert: {created: new Date()}
-                        },
-                        upsert: true
-                    });
+                    variants = getSimilarVariants(word, variants, 1);
+                    if (variants.length > 0) {
+                        console.log("Inserting error");
+                        db.errors.findAndModify({
+                            query: {
+                                project_id: page.project_id,
+                                word: word,
+                                variants: variants
+                            },
+                            update: {
+                                $addToSet: {page_ids: page._id},
+                                $inc: {pages_count: 1},
+                                $setOnInsert: {created: new Date()}
+                            },
+                            upsert: true
+                        });
+                    }
                 }
                 if (!page.words.length) {
                     db.pages.update({_id: page._id}, {
                         $set: {checked_at: new Date()}
                     });
                     console.log('page done');
-                    setTimeout(main, 100);
+                    setTimeout(main, 1);
                 } else {
                     processWord(page.words.shift());
                 }

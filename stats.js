@@ -1,4 +1,4 @@
-var db = require("mongojs").connect("spell", ["pages", "projects", "typos"]);
+var db = require("mongojs").connect("spell", ["pages", "projects", "errors"]);
 
 db.pages.count({}, function(err, number) {
     console.log('Total number of pages in DB:', number);

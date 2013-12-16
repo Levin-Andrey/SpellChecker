@@ -1,17 +1,10 @@
-var db = require("mongojs").connect("spell", ["pages", "projects", "typos"]);
+var db = require("mongojs").connect("spell", ["pages", "projects", "errors"]);
 
-db.pages.find().skip(1, function(err, elems) {
-    elems.forEach(function(elem) {
-       db.pages.remove({_id: elem._id});
+db.projects.remove({}, function(){
+    db.pages.remove({}, function() {
+        db.errors.remove({}, function() {
+            process.exit(1);
+        });
     });
 });
 
-db.pages.find({}, function(error, pages) {
-    pages.forEach(function(page) {
-        delete page.downloaded_at;
-        delete page.checked_at;
-        db.pages.save(page);
-    });
-});
-
-db.errors.remove();

@@ -104,7 +104,7 @@ app.get('/api/projects/:id/typos', function(req, res) {
         return;
     }
     db.errors.find({project_id: id, ignore: {$exists: false}}, {created: 0, project_id: 0})
-        .limit(100).sort({pages_count: -1}, function(err, typos) {
+        .limit(100).sort({pages_count: 1}, function(err, typos) {
             if (err) {
                 throw err;
             }

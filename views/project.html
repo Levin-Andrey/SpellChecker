@@ -40,8 +40,8 @@
                 <li>Total typos: <span id="typos_to_review"></span></li>
                 <li>Typos ignored: <span id="typos_ignored"></span></li>
                 <li>Pages analyzed: <span id="pages_analyzed"></span></li>
-                <li>Pages left to scan: <span id="pages_left_to_download"></span></li>
-                <li>Pages left to check: <span id="pages_left_to_check">    </span></li>
+                <li>Pages left to analyze: <span id="pages_left_to_check">    </span></li>
+                <li>Pages left to download: <span id="pages_left_to_download"></span></li>
             </ul>
         </div>
     </div>
@@ -65,7 +65,7 @@
                 var $el = $(this).closest(".ortho-error");
                 var id = $el.find(".error_id").val();
                 $.ajax({url: serverUrl + 'typos/' + id + '/ignore'}).done(function() {
-                    $el.remove();
+                    hideErrorAnimated($el);
                     reviewed_cache[id] = true;
                     ensureHasTypoToRender();
                 });
@@ -74,11 +74,21 @@
                 var $el = $(this).closest(".ortho-error");
                 var id = $el.find(".error_id").val();
                 $.ajax({url: serverUrl + 'typos/' + id + '/fixed'}).done(function() {
-                    $el.remove();
+                    hideErrorAnimated($el);
                     reviewed_cache[id] = true;
                     ensureHasTypoToRender();
                 });
             });
+
+            var hideErrorAnimated = function($el) {
+                $el.animate({
+                    opacity: 0
+                }, 'fast', function() {
+                    $el.slideUp(function() {
+                        $el.remove();
+                    });
+                })
+            };
 
             var ensureHasTypoToRender = function() {
                 var numOfTyposOnScreen = $(".error_id").length;
