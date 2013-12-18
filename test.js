@@ -39,7 +39,7 @@ var getText = function($, window) {
             $(this).remove()
         }
     });
-    text = $('body').text().replace(/\s{2,}/g, '. ');
+    text = $('body').text().replace(/\s{2,}/g, ' ');
     var otherTexts = getAttr($, 'title')
         .concat(getAttr($, 'alt'));
     $("[value][type!=hidden]").each(function() {
@@ -52,6 +52,21 @@ var getText = function($, window) {
     otherTexts.push($('meta[name=keywords]').attr("content"));
     otherTexts.push($('meta[name=description]').attr("content"));
     otherTexts.push(text);
-    otherTexts.join(". ");
-    console.log(text);
+    otherTexts.join(" ");
+    text = text.replace(/(ё)/g, "е")
+        .replace(/(Ё)/g, "Е")
+        .replace(/\b(https?:\/\/)?([\da-z.-]+).([a-z.]{2,6})([\/\w .-])\/?\b/g, " ")
+        .replace(/\b(([^<>()[\]\\.,;:\s@\"]+(\.[^<>()[\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))\b/g, " ")
+        .replace(/[^a-zA-Zа-яА-Я]/g, " ")
+        .replace(/[0-9]/g, " ");
+    var wordsDirty = text.split(/\s+/);
+    var words = [];
+    for (var i in wordsDirty) {
+        var word = wordsDirty[i];
+        if (word.length > 2
+            && word[0] !== word[0].toUpperCase()) {
+            words.push(word);
+        }
+    }
+    console.log(words);
 };

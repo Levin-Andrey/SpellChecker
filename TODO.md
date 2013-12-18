@@ -1,10 +1,16 @@
 TODO
 =====
+- success page (no errors) or waiting for errors block
+- send to email on new project creation
+- get 10 pages per project (all projects analyze at the same time)
+- limit urls by project + message
+- on stats change, attract attention
 
-- all words in lower case, user won't be able to find them
-- clear word from page better (one letter, with commas and dots etc)
 - pages_count doesn't work. Insert only $addToSet
-- html comments remove from web page texts
+- send to email web page
+- inline tags bugs
 - check dictionaries here: http://speakrus.ru/dict/index.htm
-- replace inline blocks with "", not " "
-- remove urls, emails from web page texts
+
+IDEAS
+=====
+- word matrix to find similar spelling words (geo spatial index)

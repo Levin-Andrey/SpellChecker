@@ -1,6 +1,8 @@
 var spawn = require('child_process').spawn,
     db = require("mongojs").connect("spell", ["pages", "errors"]),
-    lev = require("./levenshtein.js");
+    lev = require("./levenshtein.js"),
+    wiki_url = 'http://ru.wikipedia.org/w/api.php?action=query&list=search&format=json&srsearch=',
+    request = require('request');
 
 var SpellChecker = function() {
     this.wordsInProgress = [];
@@ -78,6 +80,39 @@ var getSimilarVariants = function(word, variants, distance) {
     return result;
 };
 
+var wikiFilter = function(word, callback) {
+    request.get({
+        url: wiki_url + word,
+        headers: {
+            'User-Agent': 'SpellChecker0.001 (http://spell.lenny.dev.vbo.name/; vbo@vbo.name) Based on request'
+        },
+        json: true
+    }, function(err1, resp, body) {
+        if (body.query.searchinfo && body.query.searchinfo.suggestion) {
+            callback(word, true);
+        } else {
+            callback(word, false);
+        }
+    });
+};
+
+var saveErrorToDb = function(page_id, project_id, word, variants) {
+    console.log("Inserting error");
+    db.errors.findAndModify({
+        query: {
+            project_id: project_id,
+            word: word,
+            variants: variants
+        },
+        update: {
+            $addToSet: {page_ids: page_id},
+            $inc: {pages_count: 1},
+            $setOnInsert: {created: new Date()}
+        },
+        upsert: true
+    });
+};
+
 var main = function() {
     db.pages.findOne({checked_at: {$exists: false}, words: {$exists: true}}, function(err, page) {
         if( err || !page) {
@@ -91,19 +126,11 @@ var main = function() {
                 if (err) {
                     variants = getSimilarVariants(word, variants, 1);
                     if (variants.length > 0) {
-                        console.log("Inserting error");
-                        db.errors.findAndModify({
-                            query: {
-                                project_id: page.project_id,
-                                word: word,
-                                variants: variants
-                            },
-                            update: {
-                                $addToSet: {page_ids: page._id},
-                                $inc: {pages_count: 1},
-                                $setOnInsert: {created: new Date()}
-                            },
-                            upsert: true
+                        wikiFilter(word, function(word, isError) {
+                            if (!isError) {
+                                return;
+                            }
+                            saveErrorToDb(page._id, page.project_id, word, variants);
                         });
                     }
                 }

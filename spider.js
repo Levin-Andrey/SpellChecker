@@ -25,30 +25,61 @@ var fetchUrl = function(url, callback) {
                 setTimeout(fetchUrl(url, callback), 1000);
                 return;
             }
-            callback(window.jQuery);
+            callback(window.jQuery, window);
         }
     });
 };
 
-var getWords = function($) {
-    if (!$) {
-        console.log("Could not get jquery object");
-        return [];
-    }
+var getAttr = function($, attr) {
+    var result = [];
+    $("["+ attr +"]").each(function() {
+        var text = $(this).attr(attr);
+        if (text) {
+            result.push(text);
+        }
+    });
+    return result;
+};
+
+
+var getWords = function($, window) {
+    var text = "";
     $('script').remove();
     $('style').remove();
-    var text = $('body').html()
-        .replace(/(<([^>]+)>)/ig, ' ')
-        .replace(/&.*?;/g, " ")
-        .replace(/(ё)/g, "е")
+    $('noscript').remove();
+    $('br').replaceWith(". ");
+    //removing html comments
+    $('*').contents().each(function() {
+        if(this.nodeType == 8) {
+            $(this).remove()
+        }
+    });
+    text = $('body').text().replace(/\s{2,}/g, ' ');
+    var otherTexts = getAttr($, 'title')
+        .concat(getAttr($, 'alt'));
+    $("[value][type!=hidden]").each(function() {
+        var text = $(this).val();
+        if (text) {
+            otherTexts.push(text);
+        }
+    });
+    otherTexts.push(window.document.title);
+    otherTexts.push($('meta[name=keywords]').attr("content"));
+    otherTexts.push($('meta[name=description]').attr("content"));
+    otherTexts.push(text);
+    otherTexts.join(" ");
+    text = text.replace(/(ё)/g, "е")
         .replace(/(Ё)/g, "Е")
+        .replace(/\b(https?:\/\/)?([\da-z.-]+).([a-z.]{2,6})([\/\w .-])\/?\b/g, " ")
+        .replace(/\b(([^<>()[\]\\.,;:\s@\"]+(\.[^<>()[\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))\b/g, " ")
         .replace(/[^a-zA-Zа-яА-Я]/g, " ")
         .replace(/[0-9]/g, " ");
     var wordsDirty = text.split(/\s+/);
     var words = [];
     for (var i in wordsDirty) {
         var word = wordsDirty[i];
-        if (word.length > 1) {
+        if (word.length > 2
+            && word[0] !== word[0].toUpperCase()) {
             words.push(word);
         }
     }
@@ -81,6 +112,23 @@ Counter.prototype.inc = function() {
     return this.max <= this.processed;
 };
 
+var getProjectToAnalyze = function(callback) {
+    db.projects.find({started_at: {$exists: false}}, function(error, projects) {
+        projects.forEach(function(project) {
+            db.pages.insert({
+                project_id: project._id,
+                url: project.url
+            }, function(err) {
+                if (!err) {
+                    db.projects.update({_id: project._id}, {
+                        $set: {started_at: new Date()}
+                    });
+                }
+            });
+        });
+    });
+};
+
 var main = function() {
     console.log('Getting 10 urls');
     var a = new Date();
@@ -100,8 +148,8 @@ var main = function() {
             }
             var counter = new Counter(pages.length);
             pages.forEach(function(page) {
-                fetchUrl(page.url, function($) {
-                    var words = getWords($);
+                fetchUrl(page.url, function($, window) {
+                    var words = getWords($, window);
                     db.pages.update({_id: page._id}, {$set: {words: words, downloaded_at: new Date()}});
                     findAndInsertUrls($, page);
                     if (counter.inc()) {
