@@ -28,7 +28,9 @@ var fetchUrl = function(url, callback) {
         done: function (err, window) {
             if (err) {
                 console.log('Got error while fetching url', err);
-                setTimeout(fetchUrl(url, callback), 1000);
+                setTimeout(function () {
+                    fetchUrl(url, callback)
+                }, 1000);
                 return;
             }
             callback(window.jQuery, window);
@@ -120,74 +122,88 @@ var findAndInsertUrls = function($, page, callback) {
 var analyzePage = function(page, callback) {
     fetchUrl(page.url, function($, window) {
         console.log(":::: Got text", page.url);
-        //var words = getWords($, window);
-        db.pages.update({_id: page._id}, {$set: {words: [], downloaded_at: new Date()}});
-        /*findAndInsertUrls($, page, function() {
-            callback(page);
-        });*/
-        callback(page);
+        var words = getWords($, window);
+        findAndInsertUrls($, page, function() {
+            callback(page, words);
+        });
     });
 };
 
-var Pool = function(max) {
-    this.max = max;
+var Pool = function(size) {
+    this.size = size;
+    this.allocated = 0;
     this.inProgress = [];
 };
 
-Pool.prototype.finished = function(page) {
-    console.log('finished', page.url);
-    db.pages.update(
-        {processing_by: myName, _id: page._id},
-        {$unset: {processing_by: "", processing_started_at: ""}}
-    );
-    this.inProgress = this.inProgress.filter(function(element){
-        return !page._id.equals(element._id);
+Pool.prototype.getFreeSpace = function() {
+    return this.size - (this.inProgress.length + this.allocated);
+}
+
+Pool.prototype.finished = function(page, words) {
+    console.log('trying to finish', page.url);
+    var me = this;
+    db.pages.update({
+        _id: page._id,
+        processing_by: myName
+    }, {
+       $unset: {processing_by: 1, processing_started_at: 1},
+       $set: {words: words, downloaded_at: new Date()}
+    }, function (err) {
+        if (err) {
+            throw err;
+        }
+        me.inProgress = me.inProgress.filter(function(element){
+            return !page._id.equals(element._id);
+        });
+        console.log('finished', page.url);
+        me.addPages();
     });
-    this.addPages();
 };
 
 Pool.prototype.launch = function(page) {
     var me = this;
     console.log('::: Adding page to pool:', page.url);
+    this.allocated -= 1;
     this.inProgress.push(page);
     analyzePage(page, function(page) {
         me.finished(page);
     });
 };
 
-Pool.prototype.isInProgress = function(page) {
-    var i = this.inProgress.length;
-    while (i--) {
-        if (page._id.equals(this.inProgress[i]._id)) {
-            return true;
-        }
-    }
-    return false;
-};
-
 Pool.prototype.addPage = function(project) {
+    if (!this.checkFreeSpace()) return;
+    this.allocated += 1;
     var me = this;
-    db.pages.findAndModify({
+    var query = {
         query: {
             project_id: project._id,
             downloaded_at: {$exists: false},
             processing_by: {$exists: false}
         },
         update: {$set: {processing_by: myName, processing_started_at: new Date()}}
-    }, function(err, page) {
-        if (!page || me.isInProgress(page)) {
+    };
+    db.pages.findAndModify(query, function(err, page) {
+        if (!page) {
+            me.allocated -= 1;
             return;
         }
         me.launch(page);
     });
 }
 
+Pool.prototype.checkFreeSpace = function () {
+    if (this.getFreeSpace() < 1) {
+        console.log('pool size exceeded');
+        return false;
+    }
+    return true;
+}
+
 Pool.prototype.addPages = function() {
     var me = this;
-    if (me.inProgress.length == me.max) {
-        console.log('pool size exceeded');
-    }
+    if (!me.checkFreeSpace()) return;
     db.projects.find().sort({created: -1}, function(err, projects) {
+        if (!me.checkFreeSpace()) return;
         if (projects.length == 0) {
             console.log("No projects found");
             if (me.inProgress.length == 0) {
@@ -198,33 +214,27 @@ Pool.prototype.addPages = function() {
             return;
         }
         try {
-            projects.forEach(function(project) {
-                if (me.inProgress.length == me.max) {
-                    console.log('pool size exceeded');
-                    throw breakException;
-                }
+            projects.forEach(function(project) { // it's while not found
                 if (!project.started_at) {
                     console.log('adding front page for project');
                     db.pages.insert({
                         project_id: project._id,
                         url: project.url
                     }, function(err) {
-                        if (err) throw err;
                         db.projects.update({_id: project._id}, {
                             $set: {started_at: new Date()}
                         }, function(err) {
                             if (err) throw err;
                             me.addPage(project);
-                            me.addPages();
-                            return;
                         });
                     });
                 } else {
                     me.addPage(project);
-                    me.addPages();
-                    return;
                 }
             });
+            setTimeout(function () {
+                me.addPages();
+            }, 30);
         } catch (e) {
             if (e == breakException) {
                 return;
@@ -234,7 +244,7 @@ Pool.prototype.addPages = function() {
     });
 };
 
-
 var p = new Pool(5);
 console.log('Starting spider process', myName);
 p.addPages();
+
