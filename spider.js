@@ -41,7 +41,6 @@ var getAttr = function($, attr) {
     return result;
 };
 
-
 var getWords = function($, window) {
     var text = "";
     $('script').remove();
@@ -94,6 +93,7 @@ var findAndInsertUrls = function($, page) {
         }
         var url = a.href.replace(/#.*$/, "").replace(/\/\/www\./, "//");
         callIfHtml(url, function() {
+            console.log('before insert url');
             db.pages.insert({
                 project_id: page.project_id,
                 url: url
@@ -102,80 +102,89 @@ var findAndInsertUrls = function($, page) {
     });
 };
 
-var Counter = function(max) {
-    this.max = max;
-    this.processed = 0;
-};
-
-Counter.prototype.inc = function() {
-    this.processed++;
-    return this.max <= this.processed;
-};
-
-var getProjectToAnalyze = function(callback) {
-    db.projects.find({started_at: {$exists: false}}, function(error, projects) {
-        projects.forEach(function(project) {
-            db.pages.insert({
-                project_id: project._id,
-                url: project.url
-            }, function(err) {
-                if (!err) {
-                    db.projects.update({_id: project._id}, {
-                        $set: {started_at: new Date()}
-                    });
-                }
-            });
-        });
+var analyzePage = function(page, callback) {
+    fetchUrl(page.url, function($, window) {
+        var words = getWords($, window);
+        db.pages.update({_id: page._id}, {$set: {words: words, downloaded_at: new Date()}});
+        findAndInsertUrls($, page);
+        callback(page);
     });
 };
 
-var main = function() {
-    console.log('Getting 10 urls');
-    var a = new Date();
-    a.setDate(a.getDate() - 2);
-    db.pages.find(
-        {
-            $or: [
-                {downloaded_at: {$exists: false}},
-                {downloaded_at: {$lt: a}}
-            ]
-        }).limit(10,
-        function(err, pages) {
-            if( err || !pages || pages.length == 0) {
-                console.log("No pages found");
-                setTimeout(main, 1);
+var Pool = function(max) {
+    this.max = max;
+    this.inProgress = [];
+};
+
+Pool.prototype.finished = function(page, time) {
+    console.log('finished', page.url, time, new Date().getTime());
+    this.inProgress = this.inProgress.filter(function(element){
+        return !page._id.equals(element._id);
+    });
+    this.loadPages();
+};
+
+Pool.prototype.launch = function(page) {
+    console.log('::: Launching page ', page.url);
+    this.inProgress.push(page);
+    //analyzePage(page, this.finished);
+    var me = this;
+    setTimeout(function() {
+        me.finished(page, new Date().getTime())
+    }, 10000);
+};
+
+Pool.prototype.isInProgress = function(page) {
+    var i = this.inProgress.length;
+    while (i--) {
+        if (page._id.equals(this.inProgress[i]._id)) {
+            return true;
+        }
+    }
+    return false;
+};
+
+Pool.prototype.loadPages = function() {
+    var me = this;
+    db.projects.find().sort({created: -1}, function(err, projects) {
+        if (projects.length == 0) {
+            console.log("No projects found");
+            if (me.inProgress.length == 0) {
+                setTimeout(me.loadPages(), 1);
+            }
+            return;
+        }
+        var i = projects.length;
+        while (i--) { //first add at least one page per project
+            var project = projects[i];
+            if (me.inProgress.length == me.max) {
                 return;
             }
-            var counter = new Counter(pages.length);
-            pages.forEach(function(page) {
-                fetchUrl(page.url, function($, window) {
-                    var words = getWords($, window);
-                    db.pages.update({_id: page._id}, {$set: {words: words, downloaded_at: new Date()}});
-                    findAndInsertUrls($, page);
-                    if (counter.inc()) {
-                        setTimeout(main, 1);
-                    };
-                });
-            });
-        }
-    );
-};
-
-setInterval(function() {
-    db.projects.find({started_at: {$exists: false}}, function(error, projects){
-        projects.forEach(function(project) {
-            db.pages.insert({
-                project_id: project._id,
-                url: project.url
-            }, function(err) {
-                if (!err) {
+            if (!project.started_at) {
+                db.pages.insert({
+                    project_id: project._id,
+                    url: project.url
+                }, function(err) {
+                    if (err) throw err;
                     db.projects.update({_id: project._id}, {
                         $set: {started_at: new Date()}
+                    }, function(err) {
+                        if (err) throw err;
+                        me.loadPages();
                     });
+                });
+                return;
+            }
+            db.pages.findOne({project_id: project._id, downloaded_at: {$exists: false}}, function(err, page) {
+                if (!page || me.isInProgress(page)) {
+                    return;
                 }
+                me.launch(page);
             });
-        });
+        }
+        me.loadPages();
     });
-}, 1);
+};
 
-main();
+var p = new Pool(10);
+p.loadPages();

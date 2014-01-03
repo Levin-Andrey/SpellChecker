@@ -5,6 +5,8 @@ TODO
 - get 10 pages per project (all projects analyze at the same time)
 - limit urls by project + message
 - on stats change, attract attention
+- domain and subdomain problem
+- add url of analyzed page on results view
 
 - pages_count doesn't work. Insert only $addToSet
 - send to email web page

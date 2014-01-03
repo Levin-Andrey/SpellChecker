@@ -140,7 +140,7 @@ app.post('/api/projects/', function(req, res) {
     }
     db.projects.findAndModify({
         query: {url: url},
-        update: {$setOnInsert: {url: url}},
+        update: {$setOnInsert: {url: url, created: new Date()}},
         upsert: true,
         new: true
     }, function(err, project){
