@@ -21,7 +21,7 @@ var isHtml = function(url, callback) {
 };
 
 var fetchUrl = function(url, callback) {
-    console.error(':::::Parsing ' + url);
+    console.error(':::::Fetching ' + url);
     jsdom.env({
         url: url,
         src: [jquery],
@@ -119,11 +119,13 @@ var findAndInsertUrls = function($, page, callback) {
 
 var analyzePage = function(page, callback) {
     fetchUrl(page.url, function($, window) {
-        var words = getWords($, window);
-        db.pages.update({_id: page._id}, {$set: {words: words, downloaded_at: new Date()}});
-        findAndInsertUrls($, page, function() {
+        console.log(":::: Got text", page.url);
+        //var words = getWords($, window);
+        db.pages.update({_id: page._id}, {$set: {words: [], downloaded_at: new Date()}});
+        /*findAndInsertUrls($, page, function() {
             callback(page);
-        });
+        });*/
+        callback(page);
     });
 };
 
@@ -136,7 +138,7 @@ Pool.prototype.finished = function(page) {
     console.log('finished', page.url);
     db.pages.update(
         {processing_by: myName, _id: page._id},
-        {$unset: {processing_by: 1, processing_started_at: 1}}
+        {$unset: {processing_by: "", processing_started_at: ""}}
     );
     this.inProgress = this.inProgress.filter(function(element){
         return !page._id.equals(element._id);
@@ -146,7 +148,7 @@ Pool.prototype.finished = function(page) {
 
 Pool.prototype.launch = function(page) {
     var me = this;
-    console.log('::: Launching page ', page.url);
+    console.log('::: Adding page to pool:', page.url);
     this.inProgress.push(page);
     analyzePage(page, function(page) {
         me.finished(page);
@@ -233,5 +235,6 @@ Pool.prototype.addPages = function() {
 };
 
 
-var p = new Pool(10);
+var p = new Pool(5);
+console.log('Starting spider process', myName);
 p.addPages();
