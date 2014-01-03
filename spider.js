@@ -2,14 +2,20 @@ var jsdom = require('jsdom'),
     db = require("mongojs").connect("spell", ["pages", "projects"]),
     fs = require("fs"),
     jquery = fs.readFileSync("./htdocs/static/js/jquery-2.0.3.min.js", "utf-8"),
-    request = require('request');
+    request = require('request'),
+    breakException = {},
+    async = require("async"),
+    myName = require("mongojs").ObjectId();
 
 
-var callIfHtml = function(url, callback) {
+
+var isHtml = function(url, callback) {
     request.head(url, function (error, response) {
         if (!error && response.statusCode == 200
             && response.headers["content-type"].indexOf('text/html') != -1) {
-            callback();
+            callback(true);
+        } else {
+            callback(false);
         }
     });
 };
@@ -85,20 +91,29 @@ var getWords = function($, window) {
     return words;
 };
 
-var findAndInsertUrls = function($, page) {
+var findAndInsertUrls = function($, page, callback) {
     var host = page.url.replace(/^\w+:\/\//, "").replace(/\/.*$/, "");
-    $("a").each(function(index,a) {
-        if (a.href.indexOf(host) == -1) {
+    var processLink = function($a, callback) {
+        if ($a.href.indexOf(host) == -1) {
+            callback(null, false);
             return;
         }
-        var url = a.href.replace(/#.*$/, "").replace(/\/\/www\./, "//");
-        callIfHtml(url, function() {
-            console.log('before insert url');
+        var url = $a.href.replace(/#.*$/, "").replace(/\/\/www\./, "//");
+        isHtml(url, function(isHtml) {
+            if (!isHtml) {
+                callback(null, false);
+                return;
+            }
             db.pages.insert({
                 project_id: page.project_id,
                 url: url
+            }, function() {
+                callback(null, true);
             });
         });
+    };
+    async.map($.makeArray($("a")), processLink, function() {
+        callback();
     });
 };
 
@@ -106,8 +121,9 @@ var analyzePage = function(page, callback) {
     fetchUrl(page.url, function($, window) {
         var words = getWords($, window);
         db.pages.update({_id: page._id}, {$set: {words: words, downloaded_at: new Date()}});
-        findAndInsertUrls($, page);
-        callback(page);
+        findAndInsertUrls($, page, function() {
+            callback(page);
+        });
     });
 };
 
@@ -116,22 +132,25 @@ var Pool = function(max) {
     this.inProgress = [];
 };
 
-Pool.prototype.finished = function(page, time) {
-    console.log('finished', page.url, time, new Date().getTime());
+Pool.prototype.finished = function(page) {
+    console.log('finished', page.url);
+    db.pages.update(
+        {processing_by: myName, _id: page._id},
+        {$unset: {processing_by: 1, processing_started_at: 1}}
+    );
     this.inProgress = this.inProgress.filter(function(element){
         return !page._id.equals(element._id);
     });
-    this.loadPages();
+    this.addPages();
 };
 
 Pool.prototype.launch = function(page) {
+    var me = this;
     console.log('::: Launching page ', page.url);
     this.inProgress.push(page);
-    //analyzePage(page, this.finished);
-    var me = this;
-    setTimeout(function() {
-        me.finished(page, new Date().getTime())
-    }, 10000);
+    analyzePage(page, function(page) {
+        me.finished(page);
+    });
 };
 
 Pool.prototype.isInProgress = function(page) {
@@ -144,47 +163,75 @@ Pool.prototype.isInProgress = function(page) {
     return false;
 };
 
-Pool.prototype.loadPages = function() {
+Pool.prototype.addPage = function(project) {
     var me = this;
+    db.pages.findAndModify({
+        query: {
+            project_id: project._id,
+            downloaded_at: {$exists: false},
+            processing_by: {$exists: false}
+        },
+        update: {$set: {processing_by: myName, processing_started_at: new Date()}}
+    }, function(err, page) {
+        if (!page || me.isInProgress(page)) {
+            return;
+        }
+        me.launch(page);
+    });
+}
+
+Pool.prototype.addPages = function() {
+    var me = this;
+    if (me.inProgress.length == me.max) {
+        console.log('pool size exceeded');
+    }
     db.projects.find().sort({created: -1}, function(err, projects) {
         if (projects.length == 0) {
             console.log("No projects found");
             if (me.inProgress.length == 0) {
-                setTimeout(me.loadPages(), 1);
+                setTimeout(function() {
+                    me.addPages();
+                }, 1);
             }
             return;
         }
-        var i = projects.length;
-        while (i--) { //first add at least one page per project
-            var project = projects[i];
-            if (me.inProgress.length == me.max) {
-                return;
-            }
-            if (!project.started_at) {
-                db.pages.insert({
-                    project_id: project._id,
-                    url: project.url
-                }, function(err) {
-                    if (err) throw err;
-                    db.projects.update({_id: project._id}, {
-                        $set: {started_at: new Date()}
+        try {
+            projects.forEach(function(project) {
+                if (me.inProgress.length == me.max) {
+                    console.log('pool size exceeded');
+                    throw breakException;
+                }
+                if (!project.started_at) {
+                    console.log('adding front page for project');
+                    db.pages.insert({
+                        project_id: project._id,
+                        url: project.url
                     }, function(err) {
                         if (err) throw err;
-                        me.loadPages();
+                        db.projects.update({_id: project._id}, {
+                            $set: {started_at: new Date()}
+                        }, function(err) {
+                            if (err) throw err;
+                            me.addPage(project);
+                            me.addPages();
+                            return;
+                        });
                     });
-                });
-                return;
-            }
-            db.pages.findOne({project_id: project._id, downloaded_at: {$exists: false}}, function(err, page) {
-                if (!page || me.isInProgress(page)) {
+                } else {
+                    me.addPage(project);
+                    me.addPages();
                     return;
                 }
-                me.launch(page);
             });
+        } catch (e) {
+            if (e == breakException) {
+                return;
+            }
+            throw e;
         }
-        me.loadPages();
     });
 };
 
+
 var p = new Pool(10);
-p.loadPages();
+p.addPages();
