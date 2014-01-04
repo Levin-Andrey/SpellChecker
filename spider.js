@@ -5,6 +5,7 @@ var jsdom = require('jsdom'),
     request = require('request'),
     breakException = {},
     async = require("async"),
+    Config = require('./config.js'),
     myName = require("mongojs").ObjectId();
 
 
@@ -221,6 +222,7 @@ Pool.prototype.addPages = function() {
                         project_id: project._id,
                         url: project.url
                     }, function(err) {
+                        if (err) throw err;
                         db.projects.update({_id: project._id}, {
                             $set: {started_at: new Date()}
                         }, function(err) {
@@ -229,7 +231,20 @@ Pool.prototype.addPages = function() {
                         });
                     });
                 } else {
-                    me.addPage(project);
+                    db.pages.count({
+                        project_id: project._id,
+                        $or: [
+                            {downloaded_at: {$exists: 1}},
+                            {processing_by: {$exists: 1}}
+                        ]
+                    }, function(err, num) {
+                        if (err) throw err;
+                        if (num >= Config.project.pages_limit) {
+                            console.log("Project " + project.url + " has " + num + " many analyzed pages. Skipping...");
+                            return;
+                        }
+                        me.addPage(project);
+                    });
                 }
             });
             setTimeout(function () {

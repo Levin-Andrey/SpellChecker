@@ -1,11 +1,11 @@
 TODO
 =====
 - success page (no errors) or waiting for errors block
-- get 10 pages per project (all projects analyze at the same time)
-- limit urls by project + message
+- limit urls by project message
 - on stats change, attract attention
 - domain and subdomain problem
 - add url of analyzed page on results view
+- clear locked pages of dead processes
 
 - pages_count doesn't work. Insert only $addToSet
 - send to email web page
