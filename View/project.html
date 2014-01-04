@@ -4,7 +4,7 @@
 
 {% block content %}
 <div class="row">
-    <h1>Results of checking your website</h1>
+    <h1>Results of checking <a href="#" class="js-project-host"></a></h1>
     <p>Use "fixed" button to notify, that you have corrected the typo. Later, we will check it once more,
         if the misprint really was fixed.</p>
     <p>Use "ignore" button, if the misprint is not really a misprint.
@@ -131,11 +131,16 @@
                 return null;
             };
 
-            getProjectId(function(project_id) {
+            getProject(function(project) {
+                $('.js-project-host').text(project.host).each(function () {
+                    if ($(this).is("[href]")) {
+                        $(this).attr("href", "http://" + project.host);
+                    }
+                });
                 var poll = function () {
                     console.log("poll");
-                    updateProjectStats(project_id, function (stats) {
-                        loadTypos(project_id, function(typos) {
+                    updateProjectStats(project.id, function (stats) {
+                        loadTypos(project.id, function(typos) {
                             preloaded_typos = typos;
                             if (!typos.length) {
                                 $container.hide();

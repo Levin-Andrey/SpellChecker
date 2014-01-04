@@ -158,17 +158,17 @@ app.get('/api/projects/:id/typos', function(req, res) {
         });
 });
 
-
 app.post('/api/projects/', function(req, res) {
     var url = req.body.url;
     if (!url) {
         res.send({error: "no url"});
         return;
     }
+    var host = url.replace(/^\w+:\/\//, "").replace(/\/.*$/, "");
     var date = new Date();
     db.projects.findAndModify({
-        query: {url: url},
-        update: {$setOnInsert: {url: url, created: date}},
+        query: {host: host},
+        update: {$setOnInsert: {url: url, host: host, created: date}},
         upsert: true,
         new: true
     }, function(err, project){
@@ -179,7 +179,13 @@ app.post('/api/projects/', function(req, res) {
         if (date - project.created == 0) {
             Mailer.sendNewProjectEmail(url);
         }
-        res.send({error: "ok", project_id: project._id});
+        res.send({
+            error: "ok",
+            project: {
+                id: project._id,
+                host: project.host
+            }
+        });
     });
 });
 
