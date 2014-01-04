@@ -82,7 +82,6 @@ app.get('/api/projects/:id/stats', function(req, res) {
     }
     var result = {};
     result.pages_limit = false;
-    console.log('here');
     async.parallel([
             function(callback) {
                 db.pages.count({project_id: id, downloaded_at: {$exists: true}}, callback);
