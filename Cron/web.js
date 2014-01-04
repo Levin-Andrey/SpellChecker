@@ -2,14 +2,14 @@ var fs = require('fs'),
     express = require('express'),
     mongojs = require('mongojs'),
     swig = require('swig'),
-    Config = require('./Config.js'),
-    Mailer = require('./MailHelper.js');
+    Config = require('../Class/Config.js'),
+    Mailer = require('../Class/MailHelper.js');
 
 var app = express();
 app.engine('html', swig.renderFile);
 app.set('view engine', 'html');
 app.set('view cache', false);
-app.set('views', __dirname + '/views');
+app.set('views', __dirname + '/../View');
 swig.setDefaults({ cache: false }); // TODO: use cache on prod
 app.use(express.bodyParser());
 var db = mongojs.connect("spell", ["pages", "errors", "projects"]);
