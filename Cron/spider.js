@@ -115,7 +115,7 @@ var findAndInsertUrls = function($, page, callback) {
             });
         });
     };
-    async.map($.makeArray($("a")), processLink, function() {
+    async.mapSeries($.makeArray($("a")), processLink, function() {
         callback();
     });
 };
@@ -175,23 +175,28 @@ Pool.prototype.addPage = function(project) {
     if (!this.checkFreeSpace()) return;
     this.allocated += 1;
     var me = this;
-    var date = new Date();
+    var date = new Date(new Date() - 60000);
     var query = {
         query: {
             project_id: project._id,
             downloaded_at: {$exists: false},
             $or: [
-                {processing_started_at: {$lt: date - 1*60000}},
+                {processing_started_at: {$lt: date}},
                 {processing_started_at: {$exists: false}}
-            ]
+            ],
+            processing_by: {$ne: myName}
         },
         update: {$set: {processing_by: myName, processing_started_at: new Date()}}
     };
     db.pages.findAndModify(query, function(err, page) {
         if (err) throw err;
         if (!page) {
+            console.log('could not get url for', project.url);
             me.allocated -= 1;
             return;
+        }
+        if (project.processing_by != myName) {
+            console.log("Unlocked page");
         }
         me.launch(page);
     });
@@ -235,12 +240,15 @@ Pool.prototype.addPages = function() {
                         });
                     });
                 } else {
+                    var date = new Date(new Date() - 60000);
                     db.pages.count({
                         project_id: project._id,
                         $or: [
                             {downloaded_at: {$exists: 1}},
-                            {processing_by: {$exists: 1}}
-                        ]
+                            {processing_started_at: {$gt: date}},
+                            {processing_started_at: {$exists: 1}}
+                        ],
+                        processing_by: {$ne: myName}
                     }, function(err, num) {
                         if (err) throw err;
                         if (num >= Config.project.pages_limit) {
