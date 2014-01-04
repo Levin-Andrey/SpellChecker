@@ -68,3 +68,10 @@ span.help-block {
     margin-top: 5px;
 }
 
+.no-errors.well {
+    background-color: #dff0d8;
+}
+
+.no-errors.well > h3 {
+    margin-top: 0;
+}

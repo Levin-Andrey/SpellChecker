@@ -41,8 +41,7 @@ var updateProjectStats = function(project_id, callback) {
         $("#typos_to_review").text(data.typos_to_review);
         $("#typos_ignored").text(data.typos_ignored);
         $("#pages_downloaded").text(data.pages_downloaded);
-        $("#pages_left_to_download").text(data.pages_left_to_download);
-        $("#pages_left_to_check").text(data.pages_left_to_check);
+        $("#pages_checked").text(data.pages_checked);
         $("#pages_limit").text("");
         if (data.pages_limit) {
             $("#pages_limit").text("Limit per project exceeded");

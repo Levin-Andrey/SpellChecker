@@ -17,12 +17,12 @@
         <div class="row wait-errors js-template" style="text-align: center">
             <img src="/static/img/loader.gif" style="width: 160px; margin-top: 30px"/>
         </div>
-        <div class="row no-errors well js-template" style="background: #dff0d8">
-            <h3 style="margin-top: 0px">Wow! Looking good!</h3>
+        <div class="row no-errors well js-template">
+            <h3>Wow! Looking good!</h3>
             <p>
                 Our robots found no misprints on the entire site.
                 Maybe we are missing something &mdash; we're just in early access.
-                Let us know by <a href="#">dropping a letter to vbo@vbo.name</a>.
+                Let us know by <a href="/about/">dropping a letter</a>.
             </p>
         </div>
         <div class="project-errors-container">
@@ -52,9 +52,8 @@
             <ul>
                 <li>Typos to review: <span id="typos_to_review"></span></li>
                 <li>Typos ignored: <span id="typos_ignored"></span></li>
-                <li>Pages left to check: <span id="pages_left_to_check"></span></li>
+                <li>Pages checked: <span id="pages_checked"></span></li>
                 <li>Pages downloaded: <span id="pages_downloaded"></span></li>
-                <li>Pages left to download: <span id="pages_left_to_download"></span></li>
             </ul>
             <p id="pages_limit"></p>
         </div>
@@ -144,7 +143,7 @@
                             preloaded_typos = typos;
                             if (!typos.length) {
                                 $container.hide();
-                                if (stats.pages_left_to_check || stats.pages_left_to_download || !stats.project_started_at) {
+                                if (stats.in_progress) {
                                     $success.hide();
                                     $loader.show();
                                 } else {

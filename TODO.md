@@ -1,15 +1,12 @@
 TODO
 =====
-- success page (no errors) or waiting for errors block
-- on stats change, attract attention
-- domain and subdomain problem
-- add url of analyzed page on results view
-- clear locked pages of dead processes
-
 - pages_count doesn't work. Insert only $addToSet
 - send to email web page
 - inline tags bugs
+
 - check dictionaries here: http://speakrus.ru/dict/index.htm
+- on stats change, attract attention
+- domain and subdomain problem
 
 IDEAS
 =====

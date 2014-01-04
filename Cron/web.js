@@ -23,6 +23,13 @@ app.get('/about', function (req, res) {
     res.render('about');
 });
 
+app.post('/about', function(req, res) {
+    var email = req.body.email;
+    var message = req.body.message;
+    Mailer.sendMessage(email, message);
+    res.render('about', {success: true});
+});
+
 app.get('/project', function (req, res) {
     res.render('project');
 });
@@ -80,17 +87,12 @@ app.get('/api/projects/:id/stats', function(req, res) {
         res.send({error: "incorrect id"});
         return;
     }
-    var result = {};
-    result.pages_limit = false;
     async.parallel([
             function(callback) {
                 db.pages.count({project_id: id, downloaded_at: {$exists: true}}, callback);
             },
             function(callback) {
-                db.pages.count({project_id: id, downloaded_at: {$exists: false}}, callback);
-            },
-            function(callback) {
-                db.pages.count({project_id: id, checked_at: {$exists: false}, downloaded_at: {$exists: true}}, callback);
+                db.pages.count({project_id: id, checked_at: {$exists: true}, downloaded_at: {$exists: true}}, callback);
             },
             function(callback) {
                 db.errors.count({project_id: id, ignore: {$exists: true}}, callback);
@@ -101,24 +103,27 @@ app.get('/api/projects/:id/stats', function(req, res) {
             function(callback) {
                 db.projects.findOne({_id: id}, callback);
             },
+            function(callback) {
+                db.pages.count({project_id: id, processing_by: {$exists: 1}}, callback)
+            }
         ],
         function(err, results){
-            if (!results[5]) {
+            if (!results[4]) {
                 res.send({error: "No such project"});
                 return;
             }
             if (err) throw err;
+            var result = {};
             result.pages_downloaded = results[0];
-            result.pages_left_to_download = Math.min(results[1], Config.project.pages_limit - result.pages_downloaded);
-            result.pages_left_to_check = results[2];
-            result.typos_ignored = results[3];
-            result.typos_to_review = results[4];
-            if (result.pages_downloaded == Config.project.pages_limit
-                && (result.pages_left_to_download > Config.project.pages_limit
-                || result.pages_left_to_check > Config.project.pages_limit)) {
+            result.pages_checked = results[1];
+            result.typos_ignored = results[2];
+            result.typos_to_review = results[3];
+            result.project_started_at = results[4].started_at;
+            result.pages_limit = false;
+            if (result.pages_checked >= Config.project.pages_limit) {
                 result.pages_limit = true;
             }
-            result.project_started_at = results[5].started_at;
+            result.in_progress = results[5] > 0 || !result.project_started_at;
             res.send({error: 'ok', stats: result});
         });
 });

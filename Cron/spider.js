@@ -94,10 +94,10 @@ var getWords = function($, window) {
     return words;
 };
 
-var findAndInsertUrls = function($, page, callback) {
+var findAndInsertUrls = function($, page, freeSlotsForPages, callback) {
     var host = page.url.replace(/^\w+:\/\//, "").replace(/\/.*$/, "");
     var processLink = function($a, callback) {
-        if ($a.href.indexOf(host) == -1) {
+        if (freeSlotsForPages <= 0 || $a.href.indexOf(host) == -1) {
             callback(null, false);
             return;
         }
@@ -107,6 +107,7 @@ var findAndInsertUrls = function($, page, callback) {
                 callback(null, false);
                 return;
             }
+            freeSlotsForPages--;
             db.pages.insert({
                 project_id: page.project_id,
                 url: url
@@ -121,11 +122,19 @@ var findAndInsertUrls = function($, page, callback) {
 };
 
 var analyzePage = function(page, callback) {
-    fetchUrl(page.url, function($, window) {
-        console.log(":::: Got text", page.url);
-        var words = getWords($, window);
-        findAndInsertUrls($, page, function() {
-            callback(page, words);
+    db.pages.count({project_id: page.project_id}, function(err, num) {
+        if (err) throw err;
+        fetchUrl(page.url, function($, window) {
+            console.log(":::: Got text", page.url);
+            var words = getWords($, window);
+            var freeSlotsForPages = Config.project.pages_limit - num;
+            if (freeSlotsForPages > 0) {
+                findAndInsertUrls($, page, freeSlotsForPages, function() {
+                    callback(page, words);
+                });
+            } else {
+                callback(page, words);
+            }
         });
     });
 };
