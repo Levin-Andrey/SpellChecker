@@ -103,6 +103,10 @@ app.get('/api/projects/:id/stats', function(req, res) {
             },
         ],
         function(err, results){
+            if (!results[5]) {
+                res.send({error: "No such project"});
+                return;
+            }
             if (err) throw err;
             result.pages_downloaded = results[0];
             result.pages_left_to_download = Math.min(results[1], Config.project.pages_limit - result.pages_downloaded);
