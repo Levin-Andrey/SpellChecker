@@ -3,7 +3,8 @@ var fs = require('fs'),
     mongojs = require('mongojs'),
     swig = require('swig'),
     Config = require('../Class/Config.js'),
-    Mailer = require('../Class/MailHelper.js');
+    Mailer = require('../Class/MailHelper.js'),
+    async = require('async');
 
 var app = express();
 app.engine('html', swig.renderFile);
@@ -81,26 +82,38 @@ app.get('/api/projects/:id/stats', function(req, res) {
     }
     var result = {};
     result.pages_limit = false;
-    db.pages.count({project_id: id, downloaded_at: {$exists: true}}, function(err, pages_analyzed) {
-        result.pages_analyzed = pages_analyzed;
-        db.pages.count({project_id: id, downloaded_at: {$exists: false}}, function (err, pages_left_to_download) {
-            result.pages_left_to_download = Math.min(pages_left_to_download, Config.project.pages_limit);
-            db.pages.count({project_id: id, checked_at: {$exists: false}}, function (err, pages_left_to_check) {
-                result.pages_left_to_check = Math.min(pages_left_to_check, Config.project.pages_limit);
-                db.errors.count({project_id: id, ignore: {$exists: false}}, function(err, typos_to_review) {
-                    result.typos_to_review = typos_to_review;
-                    db.errors.count({project_id: id, ignore: {$exists: true}}, function(err, typos_ignored) {
-                        result.typos_ignored = typos_ignored;
-                        if (pages_left_to_download > Config.project.pages_limit
-                            || pages_left_to_check > Config.project.pages_limit) {
-                            result.pages_limit = true;
-                        }
-                        res.send({error: 'ok', stats: result});
-                    });
-                });
-            });
+    console.log('here');
+    async.parallel([
+            function(callback) {
+                db.pages.count({project_id: id, downloaded_at: {$exists: true}}, callback);
+            },
+            function(callback) {
+                db.pages.count({project_id: id, downloaded_at: {$exists: false}}, callback);
+            },
+            function(callback) {
+                db.pages.count({project_id: id, checked_at: {$exists: false}, downloaded_at: {$exists: true}}, callback);
+            },
+            function(callback) {
+                db.errors.count({project_id: id, ignore: {$exists: true}}, callback);
+            },
+            function(callback) {
+                db.errors.count({project_id: id, ignore: {$exists: false}}, callback);
+            },
+        ],
+        function(err, results){
+            if (err) throw err;
+            result.pages_downloaded = results[0];
+            result.pages_left_to_download = Math.min(results[1], Config.project.pages_limit - result.pages_downloaded);
+            result.pages_left_to_check = results[2];
+            result.typos_ignored = results[3];
+            result.typos_to_review = results[4];
+            if (result.pages_downloaded == Config.project.pages_limit
+                && (result.pages_left_to_download > Config.project.pages_limit
+                || result.pages_left_to_check > Config.project.pages_limit)) {
+                result.pages_limit = true;
+            }
+            res.send({error: 'ok', stats: result});
         });
-    });
 });
 
 app.get('/api/projects/:id/typos', function(req, res) {

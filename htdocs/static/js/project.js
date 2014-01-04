@@ -40,7 +40,7 @@ var updateProjectStats = function(project_id) {
         data = data.stats;
         $("#typos_to_review").text(data.typos_to_review);
         $("#typos_ignored").text(data.typos_ignored);
-        $("#pages_analyzed").text(data.pages_analyzed);
+        $("#pages_downloaded").text(data.pages_downloaded);
         $("#pages_left_to_download").text(data.pages_left_to_download);
         $("#pages_left_to_check").text(data.pages_left_to_check);
         $("#pages_limit").text("");

@@ -1,18 +1,15 @@
-var nodemailer = require("nodemailer");
-var smtpTransport = nodemailer.createTransport("SMTP",{});
+var async = require('async'),
+    mongojs = require('mongojs'),
+    db = mongojs.connect("spell", ["pages", "errors", "projects"]);
 
-var url = "http://ya.ru/"
-
-var mailOptions = {
-    from: "noreply@spellchecker.ru",
-    to: "lennytmp@gmail.com",
-    subject: "New project",
-    text: "New project was added " + url
-};
-
-smtpTransport.sendMail(mailOptions, function(error){
-    if (error) {
-        console.log(error);
-    }
-    process.exit(1);
-});
+async.parallel([
+        function(callback) {
+            db.pages.count({downloaded_at: {$exists: true}}, callback);
+        },
+        function(callback) {
+            db.pages.count({downloaded_at: {$exists: false}}, callback);
+        }
+    ],
+    function(err, results){
+        console.log(results);
+    });
