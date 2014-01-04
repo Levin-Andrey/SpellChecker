@@ -227,7 +227,6 @@ Pool.prototype.addPages = function() {
                         project_id: project._id,
                         url: project.url
                     }, function(err) {
-                        if (err) throw err;
                         db.projects.update({_id: project._id}, {
                             $set: {started_at: new Date()}
                         }, function(err) {

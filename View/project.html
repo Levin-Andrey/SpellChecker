@@ -13,7 +13,7 @@
     </p>
 </div>
 <div class="row">
-    <div id="errors-container" class="span8">
+    <div class="span8">
         <div class="row wait-errors js-template" style="text-align: center">
             <img src="/static/img/loader.gif" style="width: 160px; margin-top: 30px"/>
         </div>
@@ -25,21 +25,23 @@
                 Let us know by <a href="#">dropping a letter to vbo@vbo.name</a>.
             </p>
         </div>
-        <div class="row ortho-error-row js-template">
-            <div class="ortho-error">
-                <div class="error-header">
-                    <div class="pull-right">
-                        <div class="btn-group pull-right" style="width: 125px; margin: 5px auto;">
-                            <a class="btn btn-success fix" onclick="">Fixed</a>
-                            <a class="btn ignore" onclick="">Ignore</a>
+        <div class="project-errors-container">
+            <div class="row ortho-error-row js-template">
+                <div class="ortho-error">
+                    <div class="error-header">
+                        <div class="pull-right">
+                            <div class="btn-group pull-right" style="width: 125px; margin: 5px auto;">
+                                <a class="btn btn-success fix" onclick="">Fixed</a>
+                                <a class="btn ignore" onclick="">Ignore</a>
+                            </div>
                         </div>
+                        <div><h4><span class="error-word">Удлыоввовоывлл-флыво</span> <span class="help-block">found on
+                                <a class="toggle-url-list" href="#">301400 pages</a></span></h4></div>
+                        <div class="help-block variants">промышленности, недоумевая, сторонник</div>
+                        <input type="hidden" class="error_id" />
                     </div>
-                    <div><h4><span class="error-word">Удлыоввовоывлл-флыво</span> <span class="help-block">found on
-                            <a class="toggle-url-list" href="#">301400 pages</a></span></h4></div>
-                    <div class="help-block variants">промышленности, недоумевая, сторонник</div>
-                    <input type="hidden" class="error_id" />
-                </div>
-                <div class="urlList hide">
+                    <div class="urlList hide">
+                    </div>
                 </div>
             </div>
         </div>
@@ -67,7 +69,9 @@
             var preloaded_typos = [];
             var reviewed_cache = {};
             var $tpl = $(".js-template.ortho-error-row");
-            var $container = $('#errors-container');
+            var $container = $tpl.parent();
+            var $loader = $(".js-template.wait-errors");
+            var $success = $(".js-template.no-errors");
             var TYPOS_PER_PAGE = 5;
 
             $(document).on('click', "a.toggle-url-list", function() {
@@ -128,22 +132,32 @@
             };
 
             getProjectId(function(project_id) {
-                updateProjectStats(project_id);
-                loadTypos(project_id, function(typos){
-                    var i = Math.min(TYPOS_PER_PAGE, typos.length);
-                    while (i--) {
-                        var typo = typos.shift();
-                        renderTypo(typo, $tpl, $container);
-                    }
-                    window.asyncLoadDone();
-                    setInterval(function() {
-                        updateProjectStats(project_id);
+                var poll = function () {
+                    updateProjectStats(project_id, function (stats) {
                         loadTypos(project_id, function(typos) {
                             preloaded_typos = typos;
+                            if (!typos.length) {
+                                $container.hide();
+                                console.log(stats);
+                                if (stats.pages_left_to_check || stats.pages_left_to_download || !stats.project_started_at) {
+                                    $success.hide();
+                                    $loader.show();
+                                } else {
+                                    $success.show();
+                                    $loader.hide();
+                                }
+                            } else {
+                                $loader.hide();
+                                $success.hide();
+                                $container.show();
+                            }
                             ensureHasTypoToRender();
+                            setTimeout(poll, 50);
+                            window.asyncLoadDone();
                         });
-                    }, 100);
-                });
+                    }); 
+                };
+                poll();
             });
         });
     </script>

@@ -31,7 +31,7 @@ var loadTypos = function(project_id, callback) {
     });
 };
 
-var updateProjectStats = function(project_id) {
+var updateProjectStats = function(project_id, callback) {
     $.ajax({url: serverUrl + 'projects/' + project_id + '/stats'}).done(function(data) {
         if (data.error != "ok") {
             throw data.error;
@@ -47,6 +47,7 @@ var updateProjectStats = function(project_id) {
         if (data.pages_limit) {
             $("#pages_limit").text("Limit per project exceeded");
         }
+        callback(data);
     });
 };
 
