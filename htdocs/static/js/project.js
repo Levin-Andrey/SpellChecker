@@ -56,7 +56,7 @@ var isUrl = function(url) {
     return regexp.test(url);
 };
 
-var getProjectId = function(callback) {
+var getProject = function(callback) {
     var $_GET = getGetParams();
     var url = $_GET['url'];
     if (!url || !isUrl(url)) {
@@ -69,7 +69,7 @@ var getProjectId = function(callback) {
         data: {url: url}
     }).done(function(data) {
         if (data.error == "ok") {
-            callback(data.project_id)
+            callback(data.project);
         } else {
             window.location = "/";
         }
