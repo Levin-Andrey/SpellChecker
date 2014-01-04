@@ -98,6 +98,9 @@ app.get('/api/projects/:id/stats', function(req, res) {
             function(callback) {
                 db.errors.count({project_id: id, ignore: {$exists: false}}, callback);
             },
+            function(callback) {
+                db.projects.findOne({_id: id}, callback);
+            },
         ],
         function(err, results){
             if (err) throw err;
@@ -111,6 +114,7 @@ app.get('/api/projects/:id/stats', function(req, res) {
                 || result.pages_left_to_check > Config.project.pages_limit)) {
                 result.pages_limit = true;
             }
+            result.project_started_at = results[5].started_at;
             res.send({error: 'ok', stats: result});
         });
 });
