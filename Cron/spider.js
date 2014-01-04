@@ -166,8 +166,8 @@ Pool.prototype.launch = function(page) {
     console.log('::: Adding page to pool:', page.url);
     this.allocated -= 1;
     this.inProgress.push(page);
-    analyzePage(page, function(page) {
-        me.finished(page);
+    analyzePage(page, function(page, words) {
+        me.finished(page, words);
     });
 };
 
