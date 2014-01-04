@@ -175,15 +175,20 @@ Pool.prototype.addPage = function(project) {
     if (!this.checkFreeSpace()) return;
     this.allocated += 1;
     var me = this;
+    var date = new Date();
     var query = {
         query: {
             project_id: project._id,
             downloaded_at: {$exists: false},
-            processing_by: {$exists: false}
+            $or: [
+                {processing_started_at: {$lt: date - 1*60000}},
+                {processing_started_at: {$exists: false}}
+            ]
         },
         update: {$set: {processing_by: myName, processing_started_at: new Date()}}
     };
     db.pages.findAndModify(query, function(err, page) {
+        if (err) throw err;
         if (!page) {
             me.allocated -= 1;
             return;
