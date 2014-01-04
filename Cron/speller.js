@@ -106,10 +106,24 @@ var saveErrorToDb = function(page_id, project_id, word, variants) {
         },
         update: {
             $addToSet: {page_ids: page_id},
-            $inc: {pages_count: 1},
             $setOnInsert: {created: new Date()}
         },
-        upsert: true
+        upsert: true,
+        new: 1
+    }, function (err, result) {
+        // recalc pages_count after update
+        var pages_count = result.page_ids.length;
+        if (pages_count != result.pages_count) {
+            db.errors.update({
+                _id: result._id
+            }, {
+                $set: {
+                    pages_count: pages_count
+                }
+            }, function (err) {
+                if (err) throw err;
+            });
+        }
     });
 };
 
