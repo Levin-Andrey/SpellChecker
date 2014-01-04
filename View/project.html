@@ -133,12 +133,12 @@
 
             getProjectId(function(project_id) {
                 var poll = function () {
+                    console.log("poll");
                     updateProjectStats(project_id, function (stats) {
                         loadTypos(project_id, function(typos) {
                             preloaded_typos = typos;
                             if (!typos.length) {
                                 $container.hide();
-                                console.log(stats);
                                 if (stats.pages_left_to_check || stats.pages_left_to_download || !stats.project_started_at) {
                                     $success.hide();
                                     $loader.show();
