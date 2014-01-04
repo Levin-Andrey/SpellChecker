@@ -2,6 +2,9 @@ var fs = require('fs');
 var express = require('express');
 var mongojs = require('mongojs');
 var swig = require('swig');
+var Config = require('./config.js');
+var nodemailer = require("nodemailer");
+var smtpTransport = nodemailer.createTransport("SMTP",{});
 
 var app = express();
 app.engine('html', swig.renderFile);
@@ -145,7 +148,18 @@ app.post('/api/projects/', function(req, res) {
         new: true
     }, function(err, project){
         if (project && !err) {
-            res.send({error: "ok", project_id: project._id});
+            var mailOptions = {
+                from: Config.email.from,
+                to: "lennytmp@gmail.com",
+                subject: "New project",
+                text: "New project was added " + url
+            };
+            smtpTransport.sendMail(mailOptions, function(error){
+                if (error) {
+                    console.log(error);
+                }
+                res.send({error: "ok", project_id: project._id});
+            });
         } else {
             throw {project: project, err: err};
         }

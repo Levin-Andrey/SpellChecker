@@ -1,7 +1,6 @@
 TODO
 =====
 - success page (no errors) or waiting for errors block
-- send to email on new project creation
 - get 10 pages per project (all projects analyze at the same time)
 - limit urls by project + message
 - on stats change, attract attention
