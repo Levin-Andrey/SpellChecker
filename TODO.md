@@ -1,7 +1,6 @@
 TODO
 =====
 - success page (no errors) or waiting for errors block
-- limit urls by project message
 - on stats change, attract attention
 - domain and subdomain problem
 - add url of analyzed page on results view

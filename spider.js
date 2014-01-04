@@ -5,7 +5,7 @@ var jsdom = require('jsdom'),
     request = require('request'),
     breakException = {},
     async = require("async"),
-    Config = require('./config.js'),
+    Config = require('./Config.js'),
     myName = require("mongojs").ObjectId();
 
 
@@ -240,7 +240,7 @@ Pool.prototype.addPages = function() {
                     }, function(err, num) {
                         if (err) throw err;
                         if (num >= Config.project.pages_limit) {
-                            console.log("Project " + project.url + " has " + num + " many analyzed pages. Skipping...");
+                            console.log("Project " + project.url + " has " + num + " analyzed pages. Skipping...");
                             return;
                         }
                         me.addPage(project);

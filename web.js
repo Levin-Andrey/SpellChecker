@@ -1,10 +1,9 @@
-var fs = require('fs');
-var express = require('express');
-var mongojs = require('mongojs');
-var swig = require('swig');
-var Config = require('./config.js');
-var nodemailer = require("nodemailer");
-var smtpTransport = nodemailer.createTransport("SMTP",{});
+var fs = require('fs'),
+    express = require('express'),
+    mongojs = require('mongojs'),
+    swig = require('swig'),
+    Config = require('./Config.js'),
+    Mailer = require('./MailHelper.js');
 
 var app = express();
 app.engine('html', swig.renderFile);
@@ -81,16 +80,21 @@ app.get('/api/projects/:id/stats', function(req, res) {
         return;
     }
     var result = {};
+    result.pages_limit = false;
     db.pages.count({project_id: id, downloaded_at: {$exists: true}}, function(err, pages_analyzed) {
         result.pages_analyzed = pages_analyzed;
         db.pages.count({project_id: id, downloaded_at: {$exists: false}}, function (err, pages_left_to_download) {
-            result.pages_left_to_download = pages_left_to_download;
+            result.pages_left_to_download = Math.min(pages_left_to_download, Config.project.pages_limit);
             db.pages.count({project_id: id, checked_at: {$exists: false}}, function (err, pages_left_to_check) {
-                result.pages_left_to_check = pages_left_to_check;
+                result.pages_left_to_check = Math.min(pages_left_to_check, Config.project.pages_limit);
                 db.errors.count({project_id: id, ignore: {$exists: false}}, function(err, typos_to_review) {
                     result.typos_to_review = typos_to_review;
                     db.errors.count({project_id: id, ignore: {$exists: true}}, function(err, typos_ignored) {
                         result.typos_ignored = typos_ignored;
+                        if (pages_left_to_download > Config.project.pages_limit
+                            || pages_left_to_check > Config.project.pages_limit) {
+                            result.pages_limit = true;
+                        }
                         res.send({error: 'ok', stats: result});
                     });
                 });
@@ -141,28 +145,21 @@ app.post('/api/projects/', function(req, res) {
         res.send({error: "no url"});
         return;
     }
+    var date = new Date();
     db.projects.findAndModify({
         query: {url: url},
-        update: {$setOnInsert: {url: url, created: new Date()}},
+        update: {$setOnInsert: {url: url, created: date}},
         upsert: true,
         new: true
     }, function(err, project){
-        if (project && !err) {
-            var mailOptions = {
-                from: Config.email.from,
-                to: "lennytmp@gmail.com",
-                subject: "New project",
-                text: "New project was added " + url
-            };
-            smtpTransport.sendMail(mailOptions, function(error){
-                if (error) {
-                    console.log(error);
-                }
-                res.send({error: "ok", project_id: project._id});
-            });
-        } else {
+        if (err) {
+            res.send({error: err});
             throw {project: project, err: err};
         }
+        if (date - project.created == 0) {
+            Mailer.sendNewProjectEmail(url);
+        }
+        res.send({error: "ok", project_id: project._id});
     });
 });
 

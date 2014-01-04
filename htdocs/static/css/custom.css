@@ -62,3 +62,8 @@ span.help-block {
     margin: 0;
     list-style-type: none;
 }
+
+#pages_limit {
+    text-align: center;
+    margin-top: 5px;
+}
