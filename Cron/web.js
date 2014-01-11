@@ -2,7 +2,7 @@ var fs = require('fs'),
     express = require('express'),
     mongojs = require('mongojs'),
     swig = require('swig'),
-    Config = require('../Class/Config.js'),
+    Config = require('../Local/Config.js'),
     Mailer = require('../Class/MailHelper.js'),
     async = require('async');
 
@@ -11,7 +11,7 @@ app.engine('html', swig.renderFile);
 app.set('view engine', 'html');
 app.set('view cache', false);
 app.set('views', __dirname + '/../View');
-swig.setDefaults({ cache: false }); // TODO: use cache on prod
+swig.setDefaults({ cache: Config.isProd ? "memory" : false });
 app.use(express.bodyParser());
 var db = mongojs.connect("spell", ["pages", "errors", "projects"]);
 
@@ -31,6 +31,7 @@ app.post('/about', function(req, res) {
 });
 
 app.get('/project', function (req, res) {
+    console.log("/project request");
     res.render('project');
 });
 
@@ -171,6 +172,7 @@ app.post('/api/projects/', function(req, res) {
     }
     var host = url.replace(/^\w+:\/\//, "").replace(/\/.*$/, "");
     var date = new Date();
+    console.log("Adding project", host);
     db.projects.findAndModify({
         query: {host: host},
         update: {$setOnInsert: {url: url, host: host, created: date}},
@@ -194,17 +196,27 @@ app.post('/api/projects/', function(req, res) {
     });
 });
 
-app.use(function(err, req, res, next){
-    console.error(err.stack);
-    res.send(500);
-});
-
-// for dev: listen socket in the current directory
-// nginx proxy use this socket to handle non-static requests
-var socket = './web.sock';
-fs.unlink(socket, function () {
-    app.listen(socket, function () {
-        fs.chmod(socket, 0777);
-        console.log("Ready to serve requests!");
+app.configure(function () {
+    app.use(function(err, req, res, next){
+        console.error(err.stack);
+        res.send(500);
     });
 });
+
+if (Config.isProd) {
+    // listen on local port
+    var port = 81;
+    app.listen(port, function () {
+        console.log("Listening localhost:" + port);
+    });
+} else {
+    // listen socket in the current directory
+    // nginx proxy use this socket to handle non-static requests
+    var socket = './web.sock';
+    fs.unlink(socket, function () {
+        app.listen(socket, function () {
+            fs.chmod(socket, 0777);
+            console.log("Ready to serve requests!");
+        });
+    });
+}

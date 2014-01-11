@@ -5,7 +5,7 @@ var jsdom = require('jsdom'),
     request = require('request'),
     breakException = {},
     async = require("async"),
-    Config = require('../Class/Config.js'),
+    Config = require('../Local/Config.js'),
     myName = require("mongojs").ObjectId();
 
 

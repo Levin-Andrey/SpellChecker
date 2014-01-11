@@ -1,8 +1,8 @@
 var nodemailer = require("nodemailer"),
     smtpTransport = nodemailer.createTransport("SMTP",{}),
-    Config = require('./Config.js');
+    Config = require('../Local/Config.js');
 
-exports.sendNewProjectEmail = function(url, callback){
+exports.sendNewProjectEmail = function(url, callback) {
     var mailOptions = {
         from: Config.email.from,
         to: Config.email.to,
