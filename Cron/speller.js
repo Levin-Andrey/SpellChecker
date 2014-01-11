@@ -2,7 +2,8 @@ var spawn = require('child_process').spawn,
     db = require("mongojs").connect("spell", ["pages", "errors"]),
     lev = require("../Class/Levenshtein.js"),
     wiki_url = 'http://ru.wikipedia.org/w/api.php?action=query&list=search&format=json&srsearch=',
-    request = require('request');
+    request = require('request'),
+    Config = require('../Local/Config.js');
 
 var SpellChecker = function() {
     this.wordsInProgress = [];
