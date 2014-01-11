@@ -124,7 +124,7 @@ app.get('/api/projects/:id/stats', function(req, res) {
             if (result.pages_checked >= Config.project.pages_limit) {
                 result.pages_limit = true;
             }
-            result.in_progress = results[5] > 0 || !result.project_started_at;
+            result.in_progress = results[5] > 0 || !result.project_started_at || pages_checked < pages_downloaded;
             res.send({error: 'ok', stats: result});
         });
 });
