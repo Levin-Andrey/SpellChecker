@@ -137,7 +137,6 @@
                     }
                 });
                 var poll = function () {
-                    console.log("poll");
                     updateProjectStats(project.id, function (stats) {
                         loadTypos(project.id, function(typos) {
                             preloaded_typos = typos;
