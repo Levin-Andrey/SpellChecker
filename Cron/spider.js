@@ -258,7 +258,7 @@ Pool.prototype.addPages = function() {
                         project_id: project._id,
                         $or: [
                             {downloaded_at: {$exists: 1}},
-                            {processing_started_at: {$lt: date}},
+                            {processing_started_at: {$gt: date}},
                             {processing_started_at: {$exists: 1}}
                         ],
                         processing_by: {$ne: myName}
