@@ -1,5 +1,5 @@
 var Config = function () {
-    this.isProd = true;
+    this.isProd = false;
 };
 var defaults = require("../Class/Config.js");
 Config.prototype = defaults;

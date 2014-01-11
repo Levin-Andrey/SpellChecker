@@ -200,7 +200,9 @@ Pool.prototype.addPage = function(project) {
     db.pages.findAndModify(query, function(err, page) {
         if (err) throw err;
         if (!page) {
-            console.log('could not get url for', project.url);
+            if (!Config.isProd) {
+                console.log('could not get url for', project.url);
+            }
             me.allocated -= 1;
             return;
         }
@@ -225,7 +227,9 @@ Pool.prototype.addPages = function() {
     db.projects.find().sort({created: -1}, function(err, projects) {
         if (!me.checkFreeSpace()) return;
         if (projects.length == 0) {
-            console.log("No projects found");
+            if (!Config.isProd) {
+                console.log("No projects found");
+            }
             if (me.inProgress.length == 0) {
                 setTimeout(function() {
                     me.addPages();
@@ -240,7 +244,7 @@ Pool.prototype.addPages = function() {
                     db.pages.insert({
                         project_id: project._id,
                         url: project.url
-                    }, function(err) {
+                    }, function() {
                         db.projects.update({_id: project._id}, {
                             $set: {started_at: new Date()}
                         }, function(err) {
@@ -261,7 +265,9 @@ Pool.prototype.addPages = function() {
                     }, function(err, num) {
                         if (err) throw err;
                         if (num >= Config.project.pages_limit) {
-                            console.log("Project " + project.url + " has " + num + " analyzed pages. Skipping...");
+                            if (!Config.isProd) {
+                                console.log("Project " + project.url + " has " + num + " analyzed pages. Skipping...");
+                            }
                             return;
                         }
                         me.addPage(project);
