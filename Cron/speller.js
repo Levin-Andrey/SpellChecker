@@ -97,7 +97,7 @@ var wikiFilter = function(word, callback) {
 };
 
 var saveErrorToDb = function(page_id, project_id, word, variants) {
-    console.log("Inserting error");
+    console.log("Inserting typo");
     db.errors.findAndModify({
         query: {
             project_id: project_id,
