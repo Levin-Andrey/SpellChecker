@@ -105,7 +105,7 @@ app.get('/api/projects/:id/stats', function(req, res) {
                 db.projects.findOne({_id: id}, callback);
             },
             function(callback) {
-                db.pages.count({project_id: id, processing_by: {$exists: 1}}, callback)
+                db.pages.count({project_id: id, downloaded_at: {$exists: false}}, callback)
             }
         ],
         function(err, results){
@@ -121,10 +121,11 @@ app.get('/api/projects/:id/stats', function(req, res) {
             result.typos_to_review = results[3];
             result.project_started_at = results[4].started_at;
             result.pages_limit = false;
+            result.in_progress = results[5] > 0 || !result.project_started_at || pages_checked < pages_downloaded;
             if (result.pages_checked >= Config.project.pages_limit) {
                 result.pages_limit = true;
+                result.in_progress = false;
             }
-            result.in_progress = results[5] > 0 || !result.project_started_at || pages_checked < pages_downloaded;
             res.send({error: 'ok', stats: result});
         });
 });
