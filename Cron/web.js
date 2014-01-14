@@ -73,6 +73,7 @@ app.get('/api/typos/:id/fixed', function(req, res) {
             pages.forEach(function(page) {
                 delete page.downloaded_at;
                 delete page.checked_at;
+                delete page.words;
                 db.pages.save(page);
             });
         });
