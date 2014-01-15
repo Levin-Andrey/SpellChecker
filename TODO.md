@@ -10,7 +10,6 @@ TODO
 FROM USERS
 =====
 - highlight errors on page somehow !
-- add html validation !
 - increase limit pages for specific project
 - unignore errors problem
 - if only one page - show url without hiding

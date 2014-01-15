@@ -122,7 +122,7 @@ app.get('/api/projects/:id/stats', function(req, res) {
             result.typos_to_review = results[3];
             result.project_started_at = results[4].started_at;
             result.pages_limit = false;
-            result.in_progress = results[5] > 0 || !result.project_started_at || pages_checked < pages_downloaded;
+            result.in_progress = results[5] > 0 || !result.project_started_at || result.pages_checked < result.pages_downloaded;
             if (result.pages_checked >= Config.project.pages_limit) {
                 result.pages_limit = true;
                 result.in_progress = false;
@@ -185,7 +185,7 @@ app.post('/api/projects/', function(req, res) {
             res.send({error: err});
             throw {project: project, err: err};
         }
-        if (date - project.created == 0) {
+        if (date - project.created == 0 && Config.isProd) {
             Mailer.sendNewProjectEmail(url);
         }
         res.send({

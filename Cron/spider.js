@@ -22,7 +22,7 @@ var isHtml = function(url, callback) {
 };
 
 var fetchUrl = function(url, callback) {
-    console.error(':::::Fetching ' + url);
+    console.error('::: Fetching ' + url);
     jsdom.env({
         url: url,
         src: [jquery],
@@ -56,10 +56,18 @@ var getWords = function($, window) {
     $('style').remove();
     $('noscript').remove();
     $('br').replaceWith(". ");
-    //removing html comments
+    var blockTags = [ //if you add table - with append will be error nodeName is null
+        'address', 'blockquote', 'div', 'dl', 'fieldset', 'form',
+        'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'hr', 'noscript', 'ol',
+        'p', 'pre', 'ul', 'td', 'tr', 'li', 'th', 'thead', 'button'
+    ];
     $('*').contents().each(function() {
-        if(this.nodeType == 8) {
-            $(this).remove()
+        if(this.nodeType == 8) { //removing html comments
+            $(this).remove();
+            return;
+        }
+        if (this.tagName && blockTags.indexOf(this.tagName.toLowerCase()) > -1) {
+            $(this).append(' ');
         }
     });
     text = $('body').text().replace(/\s{2,}/g, ' ');
@@ -125,8 +133,14 @@ var analyzePage = function(page, callback) {
     db.pages.count({project_id: page.project_id}, function(err, num) {
         if (err) throw err;
         fetchUrl(page.url, function($, window) {
-            console.log(":::: Got text", page.url);
-            var words = getWords($, window);
+            console.log("::: Got text", page.url);
+            try {
+                var words = getWords($, window);
+            } catch (e) {
+                console.log(e);
+                console.log('!!!! html markup is broken');
+                words = [];
+            }
             var freeSlotsForPages = Config.project.pages_limit - num;
             if (freeSlotsForPages > 0) {
                 findAndInsertUrls($, page, freeSlotsForPages, function() {
