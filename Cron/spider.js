@@ -68,6 +68,7 @@ var getWords = function($, window) {
         }
         if (this.tagName && blockTags.indexOf(this.tagName.toLowerCase()) > -1) {
             $(this).append(' ');
+            $(this).prepend(' ');
         }
     });
     text = $('body').text().replace(/\s{2,}/g, ' ');
