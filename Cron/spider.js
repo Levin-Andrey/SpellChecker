@@ -146,9 +146,11 @@ var analyzePage = function(page, callback) {
             if (freeSlotsForPages > 0) {
                 findAndInsertUrls($, page, freeSlotsForPages, function() {
                     callback(page, words);
+                    window.close();
                 });
             } else {
                 callback(page, words);
+                window.close();
             }
         });
     });
@@ -303,4 +305,3 @@ Pool.prototype.addPages = function() {
 var p = new Pool(5);
 console.log('Starting spider process', myName);
 p.addPages();
-
