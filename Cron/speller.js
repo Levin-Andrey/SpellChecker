@@ -88,7 +88,10 @@ var wikiFilter = function(word, callback) {
             'User-Agent': 'SpellChecker0.001 (http://spell.lenny.dev.vbo.name/; vbo@vbo.name) Based on request'
         },
         json: true
-    }, function(err1, resp, body) {
+    }, function(err, resp, body) {
+        if (err || !body.query) {
+            throw ({text: "Error while fetching wiki", err: err, resp: resp, body: body});
+        }
         if (body.query.searchinfo && body.query.searchinfo.suggestion) {
             callback(word, true);
         } else {
