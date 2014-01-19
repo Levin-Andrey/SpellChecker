@@ -26,13 +26,21 @@ var fetchUrl = function(url, callback) {
     jsdom.env({
         url: url,
         src: [jquery],
-        done: function (err, window) {
-            if (err) {
-                console.log('Got error while fetching url', err);
-                setTimeout(function () {
-                    fetchUrl(url, callback)
-                }, 1000);
-                return;
+        features: {
+            FetchExternalResources: [],
+            ProcessExternalResources: []
+        },
+        done: function (errors, window) {
+            if (errors) {
+                if (errors instanceof Array) {
+                    console.log('Got DOM errors after fetching url <' + url + '>:', errors);
+                } else {
+                    throw errors;
+                    //setTimeout(function () {
+                    //    fetchUrl(url, callback)
+                    //}, 1000);
+                    //return;
+                }
             }
             callback(window.jQuery, window);
         }
