@@ -210,7 +210,7 @@ Pool.prototype.addPage = function(project) {
     if (!this.checkFreeSpace()) return;
     this.allocated += 1;
     var me = this;
-    var date = new Date(new Date() - 60000);
+    var date = new Date(new Date() - 5*60000);
     var query = {
         query: {
             project_id: project._id,
@@ -279,7 +279,7 @@ Pool.prototype.addPages = function() {
                         });
                     });
                 } else {
-                    var date = new Date(new Date() - 60000);
+                    var date = new Date(new Date() - 5*60000);
                     db.pages.count({
                         project_id: project._id,
                         $or: [
