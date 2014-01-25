@@ -14,4 +14,7 @@ Config.spider.no_projects_timeout = 10;
 Config.spider.unlock_page_timeout = 5*60000;
 Config.spider.pool_size = 5;
 
+Config.link_checker = {};
+Config.link_checker.timeout = 30;
+
 module.exports = Config;

@@ -1,9 +1,11 @@
-var db = require("mongojs").connect("spell", ["pages", "projects", "errors"]);
+var db = require("mongojs").connect("spell", ["pages", "projects", "errors", "links"]);
 
 db.projects.remove({}, function(){
     db.pages.remove({}, function() {
         db.errors.remove({}, function() {
-            process.exit(1);
+            db.links.remove({}, function() {
+                process.exit(0);
+            });
         });
     });
 });

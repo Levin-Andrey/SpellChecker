@@ -1,5 +1,5 @@
 var jsdom = require('jsdom'),
-    db = require("mongojs").connect("spell", ["pages", "projects", "errors"]),
+    db = require("mongojs").connect("spell", ["pages", "projects", "errors", "links"]),
     fs = require("fs"),
     path = require("path");
     jquery = fs.readFileSync(path.resolve(__dirname, "../htdocs/static/js/jquery-2.0.3.min.js"), "utf-8"),
@@ -9,20 +9,9 @@ var jsdom = require('jsdom'),
     Config = require('../Local/Config.js'),
     myName = require("mongojs").ObjectId();
 
-process.on('exit', function(){
+process.on('exit', function() {
     console.log('spider closed');
 });
-
-var isHtml = function(url, callback) {
-    request.head(url, function (error, response) {
-        if (!error && response.statusCode == 200
-            && response.headers["content-type"].indexOf('text/html') != -1) {
-            callback(true);
-        } else {
-            callback(false);
-        }
-    });
-};
 
 var fetchUrl = function(url, callback) {
     console.error('::: Fetching ' + url);
@@ -39,10 +28,6 @@ var fetchUrl = function(url, callback) {
                     console.log('Got DOM errors after fetching url <' + url + '>:', errors);
                 } else {
                     throw errors;
-                    //setTimeout(function () {
-                    //    fetchUrl(url, callback)
-                    //}, 1000);
-                    //return;
                 }
             }
             callback(window.jQuery, window);
@@ -114,58 +99,50 @@ var getWords = function($, window) {
     return words;
 };
 
-var findAndInsertUrls = function($, page, freeSlotsForPages, callback) {
-    var host = page.url.replace(/^\w+:\/\//, "").replace(/\/.*$/, "");
-    var processLink = function(url, callback) {
-        if (freeSlotsForPages <= 0 || url.indexOf(host) == -1) {
-            callback(null, false);
-            return;
-        }
-        isHtml(url, function(isHtml) {
-            if (!isHtml) {
-                callback(null, false);
-                return;
-            }
-            freeSlotsForPages--;
-            db.pages.insert({
-                project_id: page.project_id,
-                url: url
-            }, function() {
-                callback(null, true);
-            });
-        });
-    };
+var findAndInsertUrls = function($, page, callback) {
     var urls = [];
     $("a").each(function(){
         urls.push(this.href.replace(/#.*$/, "").replace(/\/\/www\./, "//"));
     });
-    async.mapSeries(urls, processLink, function() {
+    var host = page.url.replace(/^\w+:\/\//, "").replace(/\/.*$/, "");
+    async.mapSeries(urls, function (url, callback) {
+        if (url.indexOf(host) == -1) {
+            callback(null, false);
+            return;
+        }
+        // db.links.ensureIndex({url: 1}, {unique: 1})
+        db.links.insert({
+            project_id: page.project_id,
+            url: url
+        }, function (err) {
+            callback(null, true);
+        });
+    }, function() {
         callback();
     });
 };
 
 var analyzePage = function(page, callback) {
-    db.pages.count({project_id: page.project_id}, function(err, num) {
-        if (err) throw err;
-        fetchUrl(page.url, function($, window) {
-            console.log("::: Got text", page.url);
-            try {
-                var words = getWords($, window);
-            } catch (e) {
-                console.log(e);
-                console.log('!!!! html markup is broken');
-                words = [];
-            }
-            var freeSlotsForPages = Config.project.pages_limit - num;
-            if (freeSlotsForPages > 0) {
-                findAndInsertUrls($, page, freeSlotsForPages, function() {
-                    callback(page, words);
-                    window.close();
-                });
-            } else {
+    fetchUrl(page.url, function($, window) {
+        console.log("::: Got text", page.url);
+        try {
+            var words = getWords($, window);
+        } catch (e) {
+            console.log(e);
+            console.log('!!!! html markup is broken');
+            words = [];
+        }
+        db.pages.count({project_id: page.project_id}, function(err, count) {
+            if (err) throw err;
+            if (count >= Config.project.pages_limit) {
                 callback(page, words);
                 window.close();
+                return;
             }
+            findAndInsertUrls($, page, function() {
+                callback(page, words);
+                window.close();
+            });
         });
     });
 };
@@ -286,35 +263,34 @@ Pool.prototype.addPages = function() {
                 } else {
                     var date = new Date(new Date() - Config.spider.unlock_page_timeout);
                     async.parallel([
-                            function(callback) {
-                                db.errors.count({
-                                    project_id: project._id,
-                                    ignore: {$exists: false}
-                                }, callback);
-                            },
-                            function(callback) {
-                                db.pages.count({
-                                    project_id: project._id,
-                                    $or: [
-                                        {downloaded_at: {$exists: 1}},
-                                        {processing_started_at: {$gt: date}}
-                                    ],
-                                    processing_by: {$ne: myName}
-                                }, callback);
-                            },
-                            function(callback) {
-                                db.pages.count({
-                                    project_id: project._id,
-                                    downloaded_at: {$exists: false},
-                                    $or: [
-                                        {processing_started_at: {$lt: date}},
-                                        {processing_started_at: {$exists: false}}
-                                    ],
-                                    processing_by: {$ne: myName}
-                                }, callback);
-                            }
-                        ],
-                        function(err, results){
+                        function(callback) {
+                            db.errors.count({
+                                project_id: project._id,
+                                ignore: {$exists: false}
+                            }, callback);
+                        },
+                        function(callback) {
+                            db.pages.count({
+                                project_id: project._id,
+                                $or: [
+                                    {downloaded_at: {$exists: 1}},
+                                    {processing_started_at: {$gt: date}}
+                                ],
+                                processing_by: {$ne: myName}
+                            }, callback);
+                        },
+                        function(callback) {
+                            db.pages.count({
+                                project_id: project._id,
+                                downloaded_at: {$exists: false},
+                                $or: [
+                                    {processing_started_at: {$lt: date}},
+                                    {processing_started_at: {$exists: false}}
+                                ],
+                                processing_by: {$ne: myName}
+                            }, callback);
+                        }
+                    ], function(err, results){
                             var stats = {};
                             stats.errorsFound = results[0];
                             stats.pagesDownloaded = results[1];
