@@ -23,9 +23,13 @@ var isHtml = function(url, callback) {
 };
 
 var main = function() {
-    console.log("main!");
+    if (Config.isDebug) {
+        console.log("main!");
+    }
     var processLink = function(link, callback) {
-        console.log("Processing link: " + link.url);
+        if (Config.isDebug) {
+            console.log("Processing link: " + link.url);
+        }
         isHtml(link.url, function(isHtml) {
             if (!isHtml) {
                 markAsChecked(link, callback);

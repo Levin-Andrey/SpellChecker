@@ -47,7 +47,6 @@ var getAttr = function($, attr) {
 };
 
 var getWords = function($, window) {
-    var text = "";
     $('script').remove();
     $('style').remove();
     $('noscript').remove();
@@ -67,7 +66,7 @@ var getWords = function($, window) {
             $(this).prepend(' ');
         }
     });
-    text = $('body').text().replace(/\s{2,}/g, ' ');
+    var text = $('body').text().replace(/\s{2,}/g, ' ');
     var otherTexts = getAttr($, 'title')
         .concat(getAttr($, 'alt'));
     $("[value][type!=hidden]").each(function() {
@@ -102,10 +101,12 @@ var getWords = function($, window) {
 var findAndInsertUrls = function($, page, callback) {
     var urls = [];
     $("a").each(function(){
-        urls.push(this.href.replace(/#.*$/, "").replace(/\/\/www\./, "//"));
+        //process.stdout.write('.');
+        var url = $(this).prop('href').replace(/#.*$/, "").replace(/^(\w*\/\/)www\./, "$1");
+        urls.push(url);
     });
     var host = page.url.replace(/^\w+:\/\//, "").replace(/\/.*$/, "");
-    async.mapSeries(urls, function (url, callback) {
+    async.map(urls, function (url, callback) {
         if (url.indexOf(host) == -1) {
             callback(null, false);
             return;
