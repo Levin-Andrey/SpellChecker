@@ -6,6 +6,7 @@ TODO
 - domain and subdomain problem
 - add bullet-in points on main web page and some overall stats (increase loyality, more sales etc)
 - add info about why we (WMV is not error and we know that)
+- adding project with www
 
 FROM USERS
 =====

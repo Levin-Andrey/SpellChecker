@@ -13,7 +13,9 @@ var markAsChecked = function(link, callback) {
 
 var isHtml = function(url, callback) {
     request.head(url, function (error, response) {
-        if (!error && response.statusCode == 200
+        if (!error &&
+            response.statusCode && response.statusCode == 200
+            && response.headers
             && response.headers["content-type"].indexOf('text/html') != -1) {
             callback(true);
         } else {
