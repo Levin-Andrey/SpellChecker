@@ -1,7 +1,7 @@
 var jsdom = require('jsdom'),
-    db = require("mongojs").connect("spell", ["pages", "projects"]),
+    db = require("mongojs").connect("spell", ["pages", "projects", "errors"]),
     fs = require("fs"),
-    jquery = fs.readFileSync("./htdocs/static/js/jquery-2.0.3.min.js", "utf-8"),
+    jquery = fs.readFileSync(path.resolve(__dirname, "/htdocs/static/js/jquery-2.0.3.min.js", "utf-8")),
     request = require('request'),
     breakException = {},
     async = require("async"),
@@ -278,23 +278,28 @@ Pool.prototype.addPages = function() {
                         });
                     });
                 } else {
-                    var date = new Date(new Date() - 60000);
-                    db.pages.count({
-                        project_id: project._id,
-                        $or: [
-                            {downloaded_at: {$exists: 1}},
-                            {processing_started_at: {$gt: date}}
-                        ],
-                        processing_by: {$ne: myName}
-                    }, function(err, num) {
+                    db.errors.count({project_id: id, ignore: {$exists: false}}, function(err, errorsToReview){
                         if (err) throw err;
-                        if (num >= Config.project.pages_limit) {
-                            if (!Config.isProd) {
-                                console.log("Project " + project.url + " has " + num + " analyzed pages. Skipping...");
-                            }
-                            return;
+                        if (errorsToReview < 20) {
+                            var date = new Date(new Date() - 60000);
+                            db.pages.count({
+                                project_id: project._id,
+                                $or: [
+                                    {downloaded_at: {$exists: 1}},
+                                    {processing_started_at: {$gt: date}}
+                                ],
+                                processing_by: {$ne: myName}
+                            }, function(err, num) {
+                                if (err) throw err;
+                                if (num >= Config.project.pages_limit) {
+                                    if (!Config.isProd) {
+                                        console.log("Project " + project.url + " has " + num + " analyzed pages. Skipping...");
+                                    }
+                                    return;
+                                }
+                                me.addPage(project);
+                            });
                         }
-                        me.addPage(project);
                     });
                 }
             });
