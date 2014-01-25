@@ -159,7 +159,7 @@ var main = function() {
                         $set: {checked_at: new Date()}
                     });
                     console.log('page done');
-                    setTimeout(main, 1);
+                    setTimeout(main, 30);
                 } else {
                     processWord(page.words.shift());
                 }
