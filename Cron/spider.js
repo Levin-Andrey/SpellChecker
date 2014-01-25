@@ -9,7 +9,9 @@ var jsdom = require('jsdom'),
     Config = require('../Local/Config.js'),
     myName = require("mongojs").ObjectId();
 
-
+process.on('exit', function(){
+    console.log('spider closed');
+});
 
 var isHtml = function(url, callback) {
     request.head(url, function (error, response) {
@@ -114,12 +116,11 @@ var getWords = function($, window) {
 
 var findAndInsertUrls = function($, page, freeSlotsForPages, callback) {
     var host = page.url.replace(/^\w+:\/\//, "").replace(/\/.*$/, "");
-    var processLink = function($a, callback) {
-        if (freeSlotsForPages <= 0 || $a.href.indexOf(host) == -1) {
+    var processLink = function(url, callback) {
+        if (freeSlotsForPages <= 0 || url.indexOf(host) == -1) {
             callback(null, false);
             return;
         }
-        var url = $a.href.replace(/#.*$/, "").replace(/\/\/www\./, "//");
         isHtml(url, function(isHtml) {
             if (!isHtml) {
                 callback(null, false);
@@ -134,7 +135,11 @@ var findAndInsertUrls = function($, page, freeSlotsForPages, callback) {
             });
         });
     };
-    async.mapSeries($.makeArray($("a")), processLink, function() {
+    var urls = [];
+    $("a").each(function(){
+        urls.push(this.href.replace(/#.*$/, "").replace(/\/\/www\./, "//"));
+    });
+    async.mapSeries(urls, processLink, function() {
         callback();
     });
 };
@@ -210,7 +215,7 @@ Pool.prototype.addPage = function(project) {
     if (!this.checkFreeSpace()) return;
     this.allocated += 1;
     var me = this;
-    var date = new Date(new Date() - 5*60000);
+    var date = new Date(new Date() - Config.spider.unlock_page_timeout);
     var query = {
         query: {
             project_id: project._id,
@@ -226,7 +231,7 @@ Pool.prototype.addPage = function(project) {
     db.pages.findAndModify(query, function(err, page) {
         if (err) throw err;
         if (!page) {
-            if (!Config.isProd) {
+            if (!Config.isDebug) {
                 console.log('could not get url for', project.url);
             }
             me.allocated -= 1;
@@ -253,13 +258,13 @@ Pool.prototype.addPages = function() {
     db.projects.find().sort({created: -1}, function(err, projects) {
         if (!me.checkFreeSpace()) return;
         if (projects.length == 0) {
-            if (!Config.isProd) {
+            if (!Config.isDebug) {
                 console.log("No projects found");
             }
             if (me.inProgress.length == 0) {
                 setTimeout(function() {
                     me.addPages();
-                }, 1);
+                }, Config.spider.no_projects_timeout);
             }
             return;
         }
@@ -279,34 +284,55 @@ Pool.prototype.addPages = function() {
                         });
                     });
                 } else {
-                    db.errors.count({project_id: project._id, ignore: {$exists: false}}, function(err, errorsToReview){
-                        if (err) throw err;
-                        if (errorsToReview < 20) {
-                            var date = new Date(new Date() - 60000);
-                            db.pages.count({
-                                project_id: project._id,
-                                $or: [
-                                    {downloaded_at: {$exists: 1}},
-                                    {processing_started_at: {$gt: date}}
-                                ],
-                                processing_by: {$ne: myName}
-                            }, function(err, num) {
-                                if (err) throw err;
-                                if (num >= Config.project.pages_limit) {
-                                    if (!Config.isProd) {
-                                        console.log("Project " + project.url + " has " + num + " analyzed pages. Skipping...");
-                                    }
-                                    return;
-                                }
+                    var date = new Date(new Date() - Config.spider.unlock_page_timeout);
+                    async.parallel([
+                            function(callback) {
+                                db.errors.count({
+                                    project_id: project._id,
+                                    ignore: {$exists: false}
+                                }, callback);
+                            },
+                            function(callback) {
+                                db.pages.count({
+                                    project_id: project._id,
+                                    $or: [
+                                        {downloaded_at: {$exists: 1}},
+                                        {processing_started_at: {$gt: date}}
+                                    ],
+                                    processing_by: {$ne: myName}
+                                }, callback);
+                            },
+                            function(callback) {
+                                db.pages.count({
+                                    project_id: project._id,
+                                    downloaded_at: {$exists: false},
+                                    $or: [
+                                        {processing_started_at: {$lt: date}},
+                                        {processing_started_at: {$exists: false}}
+                                    ],
+                                    processing_by: {$ne: myName}
+                                }, callback);
+                            }
+                        ],
+                        function(err, results){
+                            var stats = {};
+                            stats.errorsFound = results[0];
+                            stats.pagesDownloaded = results[1];
+                            stats.pagesLeft = results[2];
+                            if (err) throw err;
+                            if (stats.errorsFound < Config.project.errors_limit
+                                && stats.pagesDownloaded < Config.project.pages_limit
+                                && stats.pagesLeft > 0) {
                                 me.addPage(project);
-                            });
-                        }
-                    });
+                            } else {
+                                console.log('skipping', project.url, stats)
+                            }
+                        });
                 }
             });
             setTimeout(function () {
                 me.addPages();
-            }, 30);
+            }, Config.spider.no_projects_timeout);
         } catch (e) {
             if (e == breakException) {
                 return;
@@ -316,6 +342,6 @@ Pool.prototype.addPages = function() {
     });
 };
 
-var p = new Pool(5);
+var p = new Pool(Config.spider.pool_size);
 console.log('Starting spider process', myName);
 p.addPages();

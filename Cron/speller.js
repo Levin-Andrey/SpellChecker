@@ -134,7 +134,7 @@ var saveErrorToDb = function(page_id, project_id, word, variants) {
 var main = function() {
     db.pages.findOne({checked_at: {$exists: false}, words: {$exists: true}}, function(err, page) {
         if( err || !page) {
-            if (!Config.isProd) {
+            if (!Config.isDebug) {
                 console.log("No pages found");
             }
             setTimeout(main, 1);
