@@ -1,6 +1,7 @@
 var jsdom = require('jsdom'),
     db = require("mongojs").connect("spell", ["pages", "projects", "errors"]),
     fs = require("fs"),
+    path = require("path"),
     jquery = fs.readFileSync(path.resolve(__dirname, "/htdocs/static/js/jquery-2.0.3.min.js", "utf-8")),
     request = require('request'),
     breakException = {},
@@ -209,7 +210,7 @@ Pool.prototype.addPage = function(project) {
     if (!this.checkFreeSpace()) return;
     this.allocated += 1;
     var me = this;
-    var date = new Date(new Date() - 60000);
+    var date = new Date(new Date() - 5*60000);
     var query = {
         query: {
             project_id: project._id,
