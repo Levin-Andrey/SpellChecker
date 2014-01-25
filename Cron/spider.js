@@ -1,8 +1,8 @@
 var jsdom = require('jsdom'),
     db = require("mongojs").connect("spell", ["pages", "projects", "errors"]),
     fs = require("fs"),
-    path = require("path"),
-    jquery = fs.readFileSync(path.resolve(__dirname, "/htdocs/static/js/jquery-2.0.3.min.js", "utf-8")),
+    path = require("path");
+    jquery = fs.readFileSync(path.resolve(__dirname, "../htdocs/static/js/jquery-2.0.3.min.js"), "utf-8"),
     request = require('request'),
     breakException = {},
     async = require("async"),
@@ -279,7 +279,7 @@ Pool.prototype.addPages = function() {
                         });
                     });
                 } else {
-                    db.errors.count({project_id: id, ignore: {$exists: false}}, function(err, errorsToReview){
+                    db.errors.count({project_id: project._id, ignore: {$exists: false}}, function(err, errorsToReview){
                         if (err) throw err;
                         if (errorsToReview < 20) {
                             var date = new Date(new Date() - 60000);
