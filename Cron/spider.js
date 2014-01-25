@@ -231,7 +231,7 @@ Pool.prototype.addPage = function(project) {
     db.pages.findAndModify(query, function(err, page) {
         if (err) throw err;
         if (!page) {
-            if (!Config.isDebug) {
+            if (Config.isDebug) {
                 console.log('could not get url for', project.url);
             }
             me.allocated -= 1;
@@ -258,7 +258,7 @@ Pool.prototype.addPages = function() {
     db.projects.find().sort({created: -1}, function(err, projects) {
         if (!me.checkFreeSpace()) return;
         if (projects.length == 0) {
-            if (!Config.isDebug) {
+            if (Config.isDebug) {
                 console.log("No projects found");
             }
             if (me.inProgress.length == 0) {
